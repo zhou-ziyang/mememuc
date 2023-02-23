@@ -15,7 +15,8 @@ function Layout() {
                     <Navbar.Toggle aria-controls="responsive-navbar-nav"/>
                     <Navbar.Collapse id="responsive-navbar-nav">
                         <Nav className="me-auto">
-                            <LinkContainer to="/"><Nav.Link>My Memes</Nav.Link></LinkContainer>
+                            <LinkContainer to="/"><Nav.Link>Home</Nav.Link></LinkContainer>
+                            <LinkContainer to="/my-memes"><Nav.Link>My Memes</Nav.Link></LinkContainer>
                             <LinkContainer to="/add-meme"><Nav.Link>Add Meme</Nav.Link></LinkContainer>
                             <NavDropdown title="APIs" id="collasible-nav-dropdown">
                                 <NavDropdown.Item href="#action/3.1">Action</NavDropdown.Item>
