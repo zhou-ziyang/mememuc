@@ -3,19 +3,27 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const cors = require('cors');
+const multer = require('multer');
+
+
 
 // ##### IMPORTANT
 // ### Your backend project has to switch the MongoDB port like this
-// ### Thus copy paste this block to your project
-const MONGODB_PORT = process.env.DBPORT || '27017';
+// ### Thus copy and paste this block to your project
+const MONGODB_PORT = process.env.DBPORT || '65535';
 const db = require('monk')(`127.0.0.1:${MONGODB_PORT}/omm-ws2223`); // connect to database omm-2021
 console.log(`Connected to MongoDB at port ${MONGODB_PORT}`)
 // ######
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
+const templatesRouter = require('./routes/templates')
 
 const app = express();
+app.use(cors({
+    origin: '*'
+}));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -36,17 +44,21 @@ app.use(function (req, res, next) {
 app.use((req, res, next) => {
     const users = db.get('users');
     users.findOne({basicauthtoken: req.headers.authorization}).then(user => {
+        console.log(user)
         if (user) {
             req.username = user.username;  // test test => Basic dGVzdDp0ZXN0
             next()
+            console.log("Logged in.")
         } else {
             res.set('WWW-Authenticate', 'Basic realm="401"')
             res.status(401).send()
+            console.log("Authentication failed.")
         }
     }).catch(e => {
         console.error(e)
         res.set('WWW-Authenticate', 'Basic realm="401"')
         res.status(401).send()
+        console.log("Login failed.")
     })
 })
 
@@ -54,6 +66,7 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/templates', templatesRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -69,6 +82,15 @@ app.use(function (err, req, res, next) {
     // render the error page
     res.status(err.status || 500);
     res.render('error');
+});
+
+const upload = multer({ dest: 'uploads/' });
+app.post('upload', upload.single('file'), (req, res) => {
+    if (req.file) {
+        res.status(200).send('File uploaded successfully.');
+    } else {
+        res.status(400).send('No file uploaded.');
+    }
 });
 
 module.exports = app;
