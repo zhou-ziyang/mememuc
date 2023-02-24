@@ -20,6 +20,7 @@ const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const templatesRouter = require('./routes/templates');
 const memesRouter = require('./routes/memes');
+const myMemesRouter = require('./routes/my_memes');
 
 const app = express();
 app.use(cors({
@@ -45,9 +46,10 @@ app.use(function (req, res, next) {
 app.use((req, res, next) => {
     const users = db.get('users');
     users.findOne({basicauthtoken: req.headers.authorization}).then(user => {
-        console.log(user)
+        // console.log(user)
         if (user) {
             req.username = user.username;  // test test => Basic dGVzdDp0ZXN0
+            req.id = user._id;
             next()
             console.log("Logged in.")
         } else {
@@ -69,6 +71,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/templates', templatesRouter);
 app.use('/memes', memesRouter);
+app.use('/my_memes', myMemesRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
