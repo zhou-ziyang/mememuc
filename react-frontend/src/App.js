@@ -1,8 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {Card, Col, Container, Row} from "react-bootstrap";
+import {Card, Col, Container, Row, Stack} from "react-bootstrap";
 import React, {useEffect} from "react";
-import {Masonry} from "@mui/lab";
-import Moment from "react-moment";
 
 
 function MemeItem(props) {
@@ -16,10 +14,11 @@ function MemeItem(props) {
                         <img src={path} width="100%"/>
                     </Col>
                     <Col>
-                        <Card.Title>{props.file.title}</Card.Title>
+                        <Card.Title><h2>{props.file.title}</h2></Card.Title>
                         <Card.Text>
-                            <div>{props.file.description}</div>
-                            <div>Created by {props.file.author} at <Moment unix>{props.file.timestamp}</Moment></div>
+                            {props.file.description}
+                            <br/>
+                            Created by {props.file.author} at {props.file.date}
                         </Card.Text>
                     </Col>
                 </Row>
@@ -38,13 +37,12 @@ function MemeView() {
     if (state === null) {
         return <div>Loading...</div>;
     } else {
-        // console.log(state)
         return (
-            state.map((meme, index) => (
-                <div key={index}>
-                    <MemeItem file={meme}/>
-                </div>
-            ))
+            <Stack direction="vertical" gap={3}>
+                {state.map((meme, index) => (
+                    <MemeItem key={index} file={meme}/>
+                ))}
+            </Stack>
         );
     }
 }
