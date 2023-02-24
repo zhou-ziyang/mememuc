@@ -1,3 +1,8 @@
 .navbar {
     margin-bottom: 20px;
 }
+
+.dropdown-menu[data-bs-popper] {
+    left: initial;
+    right: 0;
+}

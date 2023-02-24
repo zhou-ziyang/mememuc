@@ -6,6 +6,11 @@ import reportWebVitals from './reportWebVitals';
 import {BrowserRouter, Routes, Route} from "react-router-dom";
 import AddMeme from "./AddMeme";
 import Layout from "./Layout";
+import MyMemes from "./MyMemes";
+// import { registerLicense } from '@syncfusion/ej2-base'
+
+// Registering Syncfusion license key
+// registerLicense('ORg4AjUWIQA/Gnt2VVhkQlFac15JXnxLe0x0RWFab19wflZDal1XVBYiSV9jS31TdEdnWXpcdHRSRmZcWQ==');
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -14,7 +19,8 @@ root.render(
             <Routes>
                 <Route path="/" element={<Layout/>}>
                     <Route index element={<App/>}/>
-                    <Route path="add-meme" element={<AddMeme/>}/>
+                    <Route path="add_meme" element={<AddMeme/>}/>
+                    <Route path="my_memes" element={<MyMemes/>}/>
                 </Route>
             </Routes>
         </BrowserRouter>

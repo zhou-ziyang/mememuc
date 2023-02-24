@@ -1,0 +1,36 @@
+/*@import "../node_modules/@syncfusion/ej2-base/styles/material.css";*/
+/*@import "../node_modules/@syncfusion/ej2-buttons/styles/material.css";*/
+/*@import "../node_modules/@syncfusion/ej2-popups/styles/material.css";*/
+/*@import "../node_modules/@syncfusion/ej2-splitbuttons/styles/material.css";*/
+/*@import "../node_modules/@syncfusion/ej2-inputs/styles/material.css";*/
+/*@import "../node_modules/@syncfusion/ej2-navigations/styles/material.css";*/
+/*@import "../node_modules/@syncfusion/ej2-image-editor/styles/material.css";*/
+
+.meme-editor-container {
+    background: #333;
+    border-left: 1px solid #282c34;
+}
+
+/*.elPVrc {*/
+/*    max-width: 100%;*/
+/*}*/
+
+/*.elPVrc * {*/
+/*    max-width: 100%;*/
+/*}*/
+
+/*.cHPFPE svg {*/
+/*    display: none !important;*/
+/*}*/
+
+/*.iSxCsO {*/
+/*    margin-left: initial !important;*/
+/*}*/
+
+/*.e-canvas-wrapper {*/
+/*    width: auto;*/
+/*}*/
+
+.konvajs-content {
+    width: 100%;
+}
