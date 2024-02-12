@@ -6,31 +6,18 @@
 /*@import "../node_modules/@syncfusion/ej2-navigations/styles/material.css";*/
 /*@import "../node_modules/@syncfusion/ej2-image-editor/styles/material.css";*/
 
+
 .meme-editor-container {
-    background: #333;
-    border-left: 1px solid #282c34;
+    background: #EFEFEF;
+    /*border-left: 1px solid #282c34;*/
 }
 
-/*.elPVrc {*/
-/*    max-width: 100%;*/
-/*}*/
+.template_popup_content {
+    height: 600px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
 
-/*.elPVrc * {*/
-/*    max-width: 100%;*/
-/*}*/
-
-/*.cHPFPE svg {*/
-/*    display: none !important;*/
-/*}*/
-
-/*.iSxCsO {*/
-/*    margin-left: initial !important;*/
-/*}*/
-
-/*.e-canvas-wrapper {*/
-/*    width: auto;*/
-/*}*/
-
-.konvajs-content {
-    width: 100%;
+.modal-content {
+    /*width: 800px;*/
 }

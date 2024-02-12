@@ -2,61 +2,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './AddMeme.css'
 import Container from "react-bootstrap/Container";
 import React, {Fragment, useEffect, useState} from "react";
-import {Button, Col, Form, FormControl, Row, Tab, Tabs} from "react-bootstrap";
+import {Button, Col, Form, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
 import {Masonry} from "@mui/lab";
 import {createRoot} from 'react-dom/client';
-import {Stage, Layer, Star, Text, Rect} from 'react-konva';
-
+import {Stage, Layer, Text, Rect, Image} from 'react-konva';
 // import axios from "axios";
-
-let target_template = ""
-
-function refreshPage() {
-    window.location.reload(false);
-}
-
-function MemeCard(props) {
-    return (
-        <div className="card" onClick={() => {
-            target_template = props.file;
-            console.log(target_template);
-            window.location.reload(false);
-        }
-        }>
-            <img className="card-img-top" src={props.file} alt={props.file}/>
-            <div className="card-body">
-                <Button>Use</Button>
-                <Button>Insert</Button>
-            </div>
-        </div>
-    )
-}
-
-function TemplateMasonry() {
-    const [state, setState] = React.useState(null);
-    useEffect(() => {
-        fetch("http://localhost:3001/templates", {
-            headers: {
-                "Authorization": "Basic dGVzdDp0ZXN0"
-            }
-        })
-            .then(response => response.json())
-            .then(data => setState(data));
-    }, []);
-    if (state === null) {
-        return <div>Loading...</div>;
-    } else {
-        return (
-            <Masonry columns={3} spacing={2}>
-                {state.map((filename, index) => (
-                    <div key={index}>
-                        <MemeCard file={"http://localhost:3001/images/templates/" + filename}/>
-                    </div>
-                ))}
-            </Masonry>
-        );
-    }
-}
+import useImage from 'use-image';
 
 function PictureUpload() {
     const [file, setFile] = useState(null);
@@ -108,152 +59,242 @@ function PictureUpload() {
     );
 }
 
-let count_element = 1;
-
-function generateShapes() {
-    return [...Array(10)].map((_, i) => ({
-        id: i.toString(),
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        rotation: Math.random() * 180,
-        isDragging: false,
-    }));
-}
-
-const INITIAL_STATE_IMAGE = generateShapes();
-
-const INITIAL_STATE_TEXT = [
-    {
-        id: count_element.toString(),
-        text: "TEXT1",
-        x: Math.random() * 300,
-        y: Math.random() * 300,
-        isDragging: false,
-    }
-];
-
-function downloadURI(uri, name) {
-    const link = document.createElement('a');
-    link.download = name;
-    link.href = uri;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
 function ImageEditor() {
-    const [images, setImages] = React.useState(INITIAL_STATE_IMAGE);
-    const [texts, setTexts] = React.useState(INITIAL_STATE_TEXT);
+    function MemeCard(props) {
+        return (
+            <div className="card">
+                <img className="card-img-top" src={props.file} alt={props.file}/>
+                <div className="card-body">
+                    <Button onClick={() => {
+                        setTemplateSrc(props.file);
+                        set_template()
+                    }
+                    }>Use</Button>
+                    {/*<Button onClick={() => {*/}
+                    {/*    setImage(props.file);*/}
+                    {/*    addImage();*/}
+                    {/*}}>Insert</Button>*/}
+                </div>
+            </div>
+        )
+    }
 
-    const handleDragStart = (e) => {
-        const id = e.target.id();
-        setImages(
-            images.map((star) => {
-                return {
-                    ...star,
-                    isDragging: star.id === id,
-                };
+    function TemplateMasonry() {
+        const [state, setState] = React.useState(null);
+        useEffect(() => {
+            fetch("http://localhost:3001/templates", {
+                headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
             })
-        );
-    };
-    const handleDragEnd = (e) => {
-        setImages(
-            images.map((star) => {
-                return {
-                    ...star,
-                    isDragging: false,
-                };
-            })
-        );
+                .then(response => response.json())
+                .then(data => setState(data));
+        }, [state]);
+        if (state === null) {
+            return <div>Loading...</div>;
+        } else {
+            return (
+                <Masonry columns={4} spacing={2}>
+                    {state.map((filename, index) => (
+                        <div key={index}>
+                            <MemeCard file={"http://localhost:3001/images/templates/" + filename}/>
+                        </div>
+                    ))}
+                </Masonry>
+            );
+        }
+    }
+
+    let count_element = 0;
+    // count_element = count_element + 1;
+    // const INITIAL_STATE_IMAGE = [
+    //     {
+    //         id: count_element.toString(),
+    //         src: "http://localhost:3001/images/templates/Aint%20no%20body%20got%20time%20fo%20dat.jpg",
+    //         x: 0,
+    //         y: 0,
+    //     }
+    // ];
+    // count_element = count_element + 1;
+    // const INITIAL_STATE_TEXT = [
+    //     {
+    //         id: count_element.toString(),
+    //         text: "TEXT1",
+    //         x: 150,
+    //         y: 150,
+    //     }
+    // ];
+    count_element = count_element + 1;
+    const INITIAL_STATE_TEMPLATE = {
+        id: count_element.toString(),
+        src: "http://localhost:3001/images/templates/advice_yoda_gives.jpg",
     };
 
+    const [show, setShow] = useState(false);
+    // const [images, setImages] = useState(INITIAL_STATE_IMAGE);
+    // const [image, setImage] = useState('');
+    const [templateSrc, setTemplateSrc] = useState("");
+    const [template, setTemplate] = useState(INITIAL_STATE_TEMPLATE);
+    const [texts, setTexts] = useState([]);
+    const [text, setText] = useState('');
+    useEffect(() => {
+        // setImages(images);
+        setTemplateSrc(templateSrc);
+        setTemplate(template);
+        setTexts(texts);
+        setText(text);
+    }, [texts, text, template, templateSrc]);
+
+    function downloadURI(uri, name) {
+        const link = document.createElement('a');
+        link.download = name;
+        link.href = uri;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // const handleDragStartImage = (e) => {
+    //     const id = e.target.id();
+    //     setImages(
+    //         images.map((image) => {
+    //             return {
+    //                 ...image
+    //             };
+    //         })
+    //     );
+    // };
+    // const handleDragEndImage = (e) => {
+    //     setImages(
+    //         images.map((image) => {
+    //             return {
+    //                 ...image
+    //             };
+    //         })
+    //     );
+    // };
+
+
+    const handleDragStartText = (e) => {};
+    const handleDragEndText = (e) => {};
     const stageRef = React.useRef(null);
 
     const handleExport = () => {
         const uri = stageRef.current.toDataURL();
-        // console.log(uri);
         downloadURI(uri, 'stage.png');
     };
 
     const addText = () => {
-        count_element = count_element + 1
+        count_element = count_element + 1;
         texts.push({
             id: count_element.toString(),
-            text: "TEXT1",
-            x: Math.random() * 300,
-            y: Math.random() * 300,
-            isDragging: false,
+            text: text,
+            x: 150,
+            y: 150
         })
-        setTexts(texts)
-        console.log(texts)
+        setTexts(texts);
+        handleDragEndText();
     }
 
-    const canvas_width = 300;
-    const canvas_height = 300
+    // const addImage = () => {
+    //     count_element = count_element + 1;
+    //     texts.push({
+    //         id: count_element.toString(),
+    //         src: image,
+    //         text: text,
+    //         x: 150,
+    //         y: 150
+    //     })
+    //     setTexts(texts);
+    //     console.log(texts);
+    //     handleDragEndImage();
+    // }
+
+    const set_template = () => {
+        count_element = count_element + 1;
+        setTemplate({
+            id: count_element.toString(),
+            src: templateSrc
+        });
+        // console.log(texts);
+        handleDragEndText();
+    }
+
+
+    const Template = () => {
+        const [template_image] = useImage(templateSrc);
+        return (
+            <Layer>
+                <Rect x={0} y={0} width={canvas_width} height={canvas_height} fill="#FFFFFF"/>
+                {/*{images.map((template_image) => (*/}
+                {/*    <GetImage*/}
+                {/*        id={template_image.id}*/}
+                {/*        key={template_image.id}*/}
+                {/*        url={template_image.src}*/}
+                {/*        x={0}*/}
+                {/*        y={0}*/}
+                {/*        onDragStart={handleDragStartImage}*/}
+                {/*        onDragEnd={handleDragEndImage}*/}
+                {/*     />*/}
+                {/*))}*/}
+                <Image key={template.id} image={template_image} x={0} y={0}/>
+                {texts.map((text) => (
+                    <Text key={text.id} id={text.id} text={text.text} x={text.x} y={text.y} draggable onDragStart={handleDragStartText} onDragEnd={handleDragEndText}/>
+                ))}
+            </Layer>
+        )
+    };
+
+    const canvas_width = 800;
+    const canvas_height = 600
 
     return (
-        <Fragment>
-            <Button>Save</Button>
-            <Button onClick={handleExport}>Download</Button>
-            <Button onClick={addText}>Add Text</Button>
-            <Stage width={canvas_width} height={canvas_height} ref={stageRef}>
-                <Layer>
-                    <Rect x={0} y={0} width={canvas_width} height={canvas_height} fill="#FFFFFF"/>
-                    {/*<Text text="Try to drag a star" draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd}/>*/}
-                    {texts.map((text) => (
-                        <Text key={text.id} id={text.id} text={text.text} draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd}/>
-                    ))}
-                    {images.map((star) => (
-                        <Star
-                            key={star.id}
-                            id={star.id}
-                            x={star.x}
-                            y={star.y}
-                            numPoints={5}
-                            innerRadius={20}
-                            outerRadius={40}
-                            fill="#89b717"
-                            opacity={0.8}
-                            draggable
-                            rotation={star.rotation}
-                            shadowColor="black"
-                            shadowBlur={10}
-                            shadowOpacity={0.6}
-                            shadowOffsetX={star.isDragging ? 10 : 5}
-                            shadowOffsetY={star.isDragging ? 10 : 5}
-                            scaleX={star.isDragging ? 1.2 : 1}
-                            scaleY={star.isDragging ? 1.2 : 1}
-                            onDragStart={handleDragStart}
-                            onDragEnd={handleDragEnd}
-                        />
-                    ))}
-                </Layer>
-            </Stage>
-        </Fragment>
+        <>
+            <Container>
+                <div className="meme-editor-container">
+                    <Fragment>
+                        <Button variant="primary" onClick={() => setShow(true)}>Gallery</Button>
+                        <Button>Publish</Button>
+                        <Button>Save as Private</Button>
+                        <Button>Save Draft</Button>
+                        <Button onClick={handleExport}>Download</Button>
+                        <Form.Group className="m-0">
+                            <Form.Control type="text" placeholder="Enter text" value={text}
+                                          onChange={(e) => setText(e.target.value)}/>
+                            <Button onClick={addText}>Add Text</Button>
+                        </Form.Group>
+                        <Stage width={canvas_width} height={canvas_height} ref={stageRef}>
+                            <Template/>
+                        </Stage>
+                    </Fragment>
+                </div>
+            </Container>
+            <Modal
+                show={show}
+                size="lg"
+                onHide={() => setShow(false)}
+                dialogClassName="modal-90w"
+                aria-labelledby="example-custom-modal-styling-title"
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title id="example-custom-modal-styling-title">
+                        Custom Modal Styling
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <div className="template_popup_content">
+                        <Tabs defaultActiveKey="default" id="uncontrolled-tab-example" className="mb-3">
+                            <Tab eventKey="default" title="Default Templates">
+                                <TemplateMasonry/>
+                            </Tab>
+                            <Tab eventKey="custom" title="Custom Templates">
+                                <PictureUpload/>
+                                <TemplateMasonry/>
+                            </Tab>
+                        </Tabs>
+                    </div>
+                </Modal.Body>
+            </Modal>
+        </>
     );
 }
 
-function AddMeme() {
-    return (
-        <Container>
-            <Row>
-                <Col sm={5}>
-                    <Tabs defaultActiveKey="default" id="uncontrolled-tab-example" className="mb-3">
-                        <Tab eventKey="default" title="Default Templates">
-                            <TemplateMasonry/>
-                        </Tab>
-                        <Tab eventKey="custom" title="Custom Templates">
-                            <PictureUpload/>
-                            <TemplateMasonry/>
-                        </Tab>
-                    </Tabs>
-                </Col>
-                <Col className="meme-editor-container">
-                    <ImageEditor/>
-                </Col>
-            </Row>
-        </Container>
-    )
-}
-
-export default AddMeme;
+export default ImageEditor;

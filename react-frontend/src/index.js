@@ -10,7 +10,7 @@ import MyMemes from "./MyMemes";
 // import { registerLicense } from '@syncfusion/ej2-base'
 
 // Registering Syncfusion license key
-// registerLicense('ORg4AjUWIQA/Gnt2VVhkQlFac15JXnxLe0x0RWFab19wflZDal1XVBYiSV9jS31TdEdnWXpcdHRSRmZcWQ==');
+// registerLicense('Onpm run devRg4AjUWIQA/Gnt2VVhkQlFac15JXnxLe0x0RWFab19wflZDal1XVBYiSV9jS31TdEdnWXpcdHRSRmZcWQ==');
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
