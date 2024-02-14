@@ -3,10 +3,10 @@ import './AddMeme.css'
 import './Resizable.css'
 import Container from "react-bootstrap/Container";
 import React, {Fragment, useEffect, useState} from "react";
-import {Button, Col, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
+import {Form, Button, Col, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
 import {Masonry} from "@mui/lab";
 // import {createRoot} from 'react-dom/client';
-import {Image, Layer, Stage, Text} from 'react-konva';
+import {Image, Layer, Stage, Text, Transformer, Rect} from 'react-konva';
 import useImage from 'use-image';
 import {ResizableBox} from 'react-resizable';
 
@@ -67,18 +67,24 @@ function ImageEditor() {
     function MemeCard(props) {
         return (
             <div className="card">
-                <img className="card-img-top" src={props.file} alt={props.file}/>
-                <div className="card-body">
-                    <Button onClick={() => {
-                        setTemplateSrc(props.file);
-                        set_template();
-                    }
-                    }>Use</Button>
-                    {/*<Button onClick={() => {*/}
-                    {/*    setImage(props.file);*/}
-                    {/*    addImage();*/}
-                    {/*}}>Insert</Button>*/}
-                </div>
+                <img className="card-img-top" src={props.file} alt={props.file}
+                     onClick={() => {
+                         setTemplateSrc(props.file);
+                         set_template();
+                         setShow(false);
+                     }
+                     }/>
+                {/*<div className="card-body">*/}
+                {/*    <Button onClick={() => {*/}
+                {/*        setTemplateSrc(props.file);*/}
+                {/*        set_template();*/}
+                {/*    }*/}
+                {/*    }>Use</Button>*/}
+                {/*    /!*<Button onClick={() => {*!/*/}
+                {/*    /!*    setImage(props.file);*!/*/}
+                {/*    /!*    addImage();*!/*/}
+                {/*    /!*}}>Insert</Button>*!/*/}
+                {/*</div>*/}
             </div>
         )
     }
@@ -135,11 +141,15 @@ function ImageEditor() {
         setTexts(texts);
     }, [texts, template, templateSrc]);
 
-    const onResize = (event, {element, size}) => {
-        setStageSize(size.width, size.height)
-    };
-
-
+    // const addImage = (imageSrc, x, y) => {
+    //     count_element = count_element + 1;
+    //     setImages(prevImages => [...prevImages, {
+    //         id: count_element.toString(),
+    //         src: templateSrc,
+    //         x: x,
+    //         y: y
+    //     }]);
+    // }
 
     const addTextOnTopOfImage = (textContent, x, y) => {
         count_element = count_element + 1;
@@ -149,29 +159,67 @@ function ImageEditor() {
             x: x,
             y: y,
             fontSize: 30,
-            fontColor: 'black',
+            fontColor: '#000000',
             fontFamily: "Arial",
             backgroundColor: 'white'
         }]);
-        console.log(count_element);
+        // console.log(count_element);
     }
 
-    const updateTextFormat = (id, fontSize, fontColor, fontFamily, backgroundColor) => {
+    const updateTextContent = (id, newTextContent) => {
         const newTexts = texts.map((text) => {
             if (text.id === id) {
                 return {
                     ...text,
-                    fontSize: parseInt(fontSize),
-                    fontColor: fontColor,
-                    fontFamily: fontFamily,
-                    backgroundColor: backgroundColor
+                    text: newTextContent
                 };
             } else {
                 return text;
             }
         });
         setTexts(newTexts);
-        console.log(texts)
+    }
+
+    const updateTextSize = (id, fontSize) => {
+        const newTexts = texts.map((text) => {
+            if (text.id === id) {
+                return {
+                    ...text,
+                    fontSize: parseInt(fontSize)
+                };
+            } else {
+                return text;
+            }
+        });
+        setTexts(newTexts);
+    }
+
+    const updateTextColor = (id, fontColor) => {
+        const newTexts = texts.map((text) => {
+            if (text.id === id) {
+                return {
+                    ...text,
+                    fontColor: fontColor
+                };
+            } else {
+                return text;
+            }
+        });
+        setTexts(newTexts);
+    }
+
+    const updateTextFont = (id, fontFamily) => {
+        const newTexts = texts.map((text) => {
+            if (text.id === id) {
+                return {
+                    ...text,
+                    fontFamily: fontFamily
+                };
+            } else {
+                return text;
+            }
+        });
+        setTexts(newTexts);
     }
 
     const set_template = () => {
@@ -183,7 +231,7 @@ function ImageEditor() {
     }
 
     const [selectedTextId, setSelectedTextId] = useState('');
-    const [stageSize, setStageSize] = useState({width: 100, height: 100});
+    const [stageSize, setStageSize] = useState({width: 512, height: 512});
 
     const stageRef = React.useRef(null);
 
@@ -200,31 +248,154 @@ function ImageEditor() {
         }
     }, [stageRef]);
 
-    const Template = () => {
+    const [selectedId, selectShape] = useState(null);
+
+    const Rectangle = ({shapeProps, isSelected, onSelect, onChange}) => {
+        const shapeRef = React.useRef();
+        const trRef = React.useRef();
+
+        React.useEffect(() => {
+            if (isSelected) {
+                // we need to attach transformer manually
+                trRef.current.nodes([shapeRef.current]);
+                trRef.current.getLayer().batchDraw();
+            }
+        }, [isSelected]);
 
         return (
+            <React.Fragment>
+                <Rect
+                    onClick={onSelect}
+                    onTap={onSelect}
+                    ref={shapeRef}
+                    {...shapeProps}
+                    draggable
+                    onDragEnd={(e) => {
+                        onChange({
+                            ...shapeProps,
+                            x: e.target.x(),
+                            y: e.target.y(),
+                        });
+                    }}
+                    onTransformEnd={(e) => {
+                        // transformer is changing scale of the node
+                        // and NOT its width or height
+                        // but in the store we have only width and height
+                        // to match the data better we will reset scale on transform end
+                        const node = shapeRef.current;
+                        const scaleX = node.scaleX();
+                        const scaleY = node.scaleY();
+
+                        // we will reset it back
+                        node.scaleX(1);
+                        node.scaleY(1);
+                        onChange({
+                            ...shapeProps,
+                            x: node.x(),
+                            y: node.y(),
+                            // set minimal value
+                            width: Math.max(5, node.width() * scaleX),
+                            height: Math.max(node.height() * scaleY),
+                        });
+                    }}
+                />
+                {isSelected && (
+                    <Transformer
+                        ref={trRef}
+                        flipEnabled={false}
+                        boundBoxFunc={(oldBox, newBox) => {
+                            // limit resize
+                            if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
+                                return oldBox;
+                            }
+                            return newBox;
+                        }}
+                    />
+                )}
+            </React.Fragment>
+        );
+    };
+
+
+    const initialRectangles = [
+        {
+            x: 10,
+            y: 10,
+            width: 100,
+            height: 100,
+            fill: 'red',
+            id: 'rect1',
+        },
+        {
+            x: 150,
+            y: 150,
+            width: 100,
+            height: 100,
+            fill: 'green',
+            id: 'rect2',
+        },
+    ];
+    const [rectangles, setRectangles] = React.useState(initialRectangles);
+    // const [selectedId, selectShape] = React.useState(null);
+
+    const MemeCanvas = () => {
+        return (
             <Layer>
-                <Image key={template.id} image={template_image} x={0} y={0}/>
-                {texts.map((text) => (
-                    <Text key={text.id} id={text.id} text={text.text} x={text.x} y={text.y}
-                          fontSize={text.fontSize}
-                          fill={text.fontColor}
-                          fontFamily={text.fontFamily}
-                          background={text.backgroundColor}
-                          draggable
-                          onClick={() => setSelectedTextId(text.id)}
-                          onDragEnd={(e) => {
-                              const id = e.target.id();
-                              const newTexts = texts.map((text) => {
-                                  if (text.id === id) {
-                                      return {...text, x: e.target.x(), y: e.target.y()};
-                                  } else {
-                                      return text;
-                                  }
-                              });
-                              setTexts(newTexts);
-                          }}/>
+                {/*<Image key={template.id} name={template.id} image={template_image} x={0} y={0} draggable/>*/}
+                {/*<Transformer selectedShapeName={template.id}/>*/}
+                {rectangles.map((rect, i) => (
+                    <Rectangle
+                        key={i}
+                        shapeProps={rect}
+                        isSelected={rect.id === selectedId}
+                        onSelect={() => {
+                            selectShape(rect.id);
+                        }}
+                        onChange={(newAttrs) => {
+                            const rects = rectangles.slice();
+                            rects[i] = newAttrs;
+                            setRectangles(rects);
+                        }}
+                    />
                 ))}
+                {/*<ImageElement/>*/}
+                {texts.map((text) => {
+                    const updateFormatElement = () => {
+                        setSelectedTextId(text.id);
+                        document.getElementsByName('fontSize')[0].value = text.fontSize;
+                        document.getElementsByName('fontColor')[0].value = text.fontColor;
+                        document.getElementsByName('fontFamily')[0].value = text.fontFamily;
+                        // document.getElementsByName('backgroundColor')[0].value = text.backgroundColor;
+                    }
+                    return (
+                        <Text key={text.id} id={text.id} text={text.text} x={text.x} y={text.y}
+                              fontSize={text.fontSize}
+                              fill={text.fontColor}
+                              fontFamily={text.fontFamily}
+                              background={text.backgroundColor}
+                              draggable
+                              onMouseDown={(e) => {
+                                  updateFormatElement();
+                              }}
+                              onDblClick={(e) => {
+                                  const newTextContent = window.prompt('Enter new text', text.text);
+                                  if (newTextContent) {
+                                      updateTextContent(text.id, newTextContent);
+                                  }
+                              }}
+                              onDragEnd={(e) => {
+                                  const id = e.target.id();
+                                  const newTexts = texts.map((text) => {
+                                      if (text.id === id) {
+                                          return {...text, x: e.target.x(), y: e.target.y()};
+                                      } else {
+                                          return text;
+                                      }
+                                  });
+                                  setTexts(newTexts);
+                              }}/>
+                    );
+                })}
             </Layer>
         )
     };
@@ -242,7 +413,7 @@ function ImageEditor() {
             <Container>
                 <div className="meme-editor-container">
                     <Fragment>
-                        <Button variant="primary" onClick={() => setShow(true)}>New Meme</Button>
+                        <Button variant="primary" onClick={() => setShow(true)}>Insert Image</Button>
                         <Button>Save Draft</Button>
                         <Button>Publish</Button>
                         <Button onClick={handleExport}>Download</Button>
@@ -257,33 +428,36 @@ function ImageEditor() {
                             <FormControl type="text" placeholder="Text"/>
                             <Button type="submit" variant="primary">Add Text</Button>
                         </form>
-                        <form onSubmit={event => {
-                            event.preventDefault();
-                            updateTextFormat(
-                                event.target.elements[0].value, // id
-                                event.target.elements[1].value, // fontSize
-                                event.target.elements[2].value, // fontColor
-                                event.target.elements[3].value, // fontFamily
-                                event.target.elements[4].value  // backgroundColor
-                            );
-                        }}>
+                        <form>
                             <FormControl type="text" placeholder="Text ID" value={selectedTextId} readOnly/>
-                            <FormControl type="number" placeholder="Font Size"/>
-                            <FormControl type="text" placeholder="Font Color"/>
-                            <FormControl type="text" placeholder="Font Family"/>
-                            <FormControl type="text" placeholder="Background Color"/>
-                            <Button type="submit" variant="primary">Update Text Format</Button>
+
+                            <FormControl type="number" placeholder="Font Size" name={"fontSize"}
+                                         onChange={(event) => updateTextSize(selectedTextId, event.target.value)}/>
+                            <input type="color" name="fontColor" title="Choose your color"
+                                   onChange={(event) => updateTextColor(selectedTextId, event.target.value)}/>
+                            <Form.Select aria-label="Font Family" name={"fontFamily"}
+                                         onChange={(event) => updateTextFont(selectedTextId, event.target.value)}>
+                                <option>Select Font Family</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Georgia">Georgia</option>
+                            </Form.Select>
+                            {/*<input type="color" name="backgroundColor" title="Choose your color"/>*/}
                         </form>
                     </Col>
                     <Col sm={9} ref={colRef}>
                         <ResizableBox
                             className="custom-box box"
-                            width={200}
-                            height={200}
+                            width={stageSize.width}
+                            height={stageSize.height}
                             handle={<span className="custom-handle custom-handle-se"/>}
-                            handleSize={[8, 8]}>
+                            handleSize={[12, 12]}
+                            onResize={(event, data) => {
+                                setStageSize({width: data.size.width, height: data.size.height});
+                            }}>
                             <Stage width={stageSize.width} height={stageSize.height} ref={stageRef}>
-                                <Template/>
+                                <MemeCanvas/>
                             </Stage>
                         </ResizableBox>
                     </Col>
@@ -297,9 +471,7 @@ function ImageEditor() {
                 aria-labelledby="example-custom-modal-styling-title"
             >
                 <Modal.Header closeButton>
-                    <Modal.Title id="example-custom-modal-styling-title">
-                        Custom Modal Styling
-                    </Modal.Title>
+                    <Modal.Title id="example-custom-modal-styling-title">Insert Image</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <div className="template_popup_content">
