@@ -13,55 +13,55 @@ import {ResizableBox} from 'react-resizable';
 const DEFAULT_WIDTH = 512;
 const DEFAULT_HEIGHT = 512;
 
-function PictureUpload() {
-    const [file, setFile] = useState(null);
-
-    const handleFileChange = (event) => {
-        setFile(event.target.files[0]);
-    };
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-
-        if (!file) {
-            alert('Please select a file to upload.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const response = await fetch('http://localhost:3000/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (response.ok) {
-                alert('File uploaded successfully.');
-                setFile(null);
-            } else {
-                throw new Error('File upload failed.');
-            }
-        } catch (error) {
-            console.error(error);
-            alert('File upload failed.');
-        }
-    };
-
-    return (
-        <form onSubmit={handleSubmit}>
-            <FormControl
-                type="file"
-                onChange={handleFileChange}
-                accept=".jpg,.png,.jpeg"
-            />
-            <Button type="submit" variant="primary">
-                Upload
-            </Button>
-        </form>
-    );
-}
+// function PictureUpload() {
+//     const [file, setFile] = useState(null);
+//
+//     const handleFileChange = (event) => {
+//         setFile(event.target.files[0]);
+//     };
+//
+//     const handleSubmit = async (event) => {
+//         event.preventDefault();
+//
+//         if (!file) {
+//             alert('Please select a file to upload.');
+//             return;
+//         }
+//
+//         const formData = new FormData();
+//         formData.append('file', file);
+//
+//         try {
+//             const response = await fetch('http://localhost:3001/api/upload', {
+//                 method: 'POST',
+//                 body: formData,
+//             });
+//
+//             if (response.ok) {
+//                 alert('File uploaded successfully.');
+//                 setFile(null);
+//             } else {
+//                 throw new Error('File upload failed.');
+//             }
+//         } catch (error) {
+//             console.error(error);
+//             alert('File upload failed.');
+//         }
+//     };
+//
+//     return (
+//         <form onSubmit={handleSubmit}>
+//             <FormControl
+//                 type="file"
+//                 onChange={handleFileChange}
+//                 accept=".jpg,.png,.jpeg"
+//             />
+//             <Button type="submit" variant="primary">
+//                 Upload
+//             </Button>
+//         </form>
+//     );
+// }
 
 
 let count_element = 0;
@@ -355,6 +355,46 @@ function ImageEditor() {
         )
     };
 
+    const handlePublish = async () => {
+        if (stageRef.current) {
+            const url = stageRef.current.toDataURL();
+            fetch(url)
+                .then(res => res.blob())
+                .then(async blob => {
+                    const formData = new FormData();
+                    const date = new Date();
+                    formData.append('file', blob, 'TEST-AUTHOR' + '-' + date.toISOString().replace(/:/g, '-') + '.png');
+                    // Add additional properties to formData
+                    formData.append('title', 'your_title_here');
+                    formData.append('description', 'your_description_here');
+                    // formData.append('author', 'TEST-AUTHOR');
+                    formData.append('private', false);
+                    formData.append('draft', false);
+                    formData.append('date', date);
+                    formData.append('vote', JSON.stringify([]));
+                    formData.append('comment', JSON.stringify([]));
+
+                    try {
+                        const response = await fetch('http://localhost:3001/api/upload', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
+                        });
+
+                        if (response.ok) {
+                            // alert('Meme published successfully.');
+                            console.error('Meme published successfully.');
+                        } else {
+                            throw new Error('Meme publish failed.');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert('Meme publish failed.');
+                    }
+                });
+        }
+    };
+
     return (
         <>
             <Container>
@@ -362,7 +402,7 @@ function ImageEditor() {
                     <Fragment>
                         <Button variant="primary" onClick={() => setShow(true)}>Insert Image</Button>
                         <Button>Save Draft</Button>
-                        <Button>Publish</Button>
+                        <Button onClick={handlePublish}>Publish</Button>
                         <Button onClick={handleExport}>Download</Button>
                     </Fragment>
                 </div>
@@ -427,10 +467,10 @@ function ImageEditor() {
                                 <TemplateMasonry/>
                             </Tab>
                             <Tab eventKey="custom" title="Upload an Image">
-                                <PictureUpload/>
+                                {/*<PictureUpload/>*/}
                             </Tab>
                             <Tab eventKey="url" title="From URL">
-                                <PictureUpload/>
+                                {/*<PictureUpload/>*/}
                             </Tab>
                         </Tabs>
                     </div>

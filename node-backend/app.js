@@ -99,13 +99,13 @@ app.use(function (err, req, res, next) {
     res.render('error');
 });
 
-const upload = multer({ dest: 'uploads/' });
-app.post('upload', upload.single('file'), (req, res) => {
-    if (req.file) {
-        res.status(200).send('File uploaded successfully.');
-    } else {
-        res.status(400).send('No file uploaded.');
-    }
-});
+// const upload = multer({ dest: 'uploads/' });
+// app.post('upload', upload.single('file'), (req, res) => {
+//     if (req.file) {
+//         res.status(200).send('File uploaded successfully.');
+//     } else {
+//         res.status(400).send('No file uploaded.');
+//     }
+// });
 
 module.exports = app;

@@ -6,7 +6,7 @@ import {Masonry} from "@mui/lab";
 function MemeCard(props) {
     return (
         <div className="card">
-            <img className="card-img-top" src={"http://localhost:3001/images/memes/" + props.data.file}
+            <img className="card-img-top" src={"http://localhost:3001/" + props.data.file.slice(7)}
                  alt={props.data.title}/>
             <div className="card-body">
                 <h6 className="card-title">{props.data.title}</h6>
@@ -18,7 +18,9 @@ function MemeCard(props) {
 function MyMemesMasonry() {
     const [state, setState] = React.useState(null);
     useEffect(() => {
-        fetch("http://localhost:3001/my_memes", {
+        // const id = 'TEST-AUTHOR';  // Define your id for the query here
+        // fetch(`http://localhost:3001/my_memes?id=${id}`, { // Add id to the request
+        fetch(`http://localhost:3001/my_memes`, { // Add id to the request
             headers: {
                 "Authorization": "Basic dGVzdDp0ZXN0"
             }

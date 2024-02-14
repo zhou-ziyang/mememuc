@@ -5,7 +5,7 @@ import React, {useEffect} from "react";
 
 function MemeItem(props) {
     // console.log(props.file)
-    const path = "http://localhost:3001/images/memes/" + props.file.file
+    const path= "http://localhost:3001/" + props.file.file.slice(7)
     return (
         <Card>
             <Card.Body>
