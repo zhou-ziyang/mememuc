@@ -5,8 +5,10 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
 const multer = require('multer');
-
-
+const app = express();
+app.use(cors({
+    origin: '*', // allow all origins
+}));
 
 // ##### IMPORTANT
 // ### Your backend project has to switch the MongoDB port like this
@@ -22,11 +24,6 @@ const templatesRouter = require('./routes/templates');
 const memesRouter = require('./routes/memes');
 const myMemesRouter = require('./routes/my_memes');
 
-const app = express();
-app.use(cors({
-    origin: '*'
-}));
-
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -41,13 +38,26 @@ app.use(function (req, res, next) {
     next();
 });
 
+// app.use((req, res, next) => {
+//     // If the path starts with /images/templates, skip the next middleware
+//     console.log("PATH: " + req.path)
+//     if (req.path.startsWith('/images/templates')) {
+//         console.log("Skipping authentication for image request.")
+//         return next();
+//     }
+//     // Otherwise, proceed to the next middleware (authentication)
+//     next();
+// });
 
 // the login middleware. Requires BasicAuth authentication
 app.use((req, res, next) => {
     const users = db.get('users');
     users.findOne({basicauthtoken: req.headers.authorization}).then(user => {
         // console.log(user)
-        if (user) {
+        if (req.path.startsWith('/images/templates')) {
+            console.log("Skipping authentication for image request.")
+            next();
+        } else if (user) {
             req.username = user.username;  // test test => Basic dGVzdDp0ZXN0
             req.id = user._id;
             next()

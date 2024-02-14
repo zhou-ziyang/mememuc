@@ -1,13 +1,14 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AddMeme.css'
+import './Resizable.css'
 import Container from "react-bootstrap/Container";
 import React, {Fragment, useEffect, useState} from "react";
-import {Button, Col, Form, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
+import {Button, Col, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
 import {Masonry} from "@mui/lab";
-import {createRoot} from 'react-dom/client';
-import {Stage, Layer, Text, Rect, Image} from 'react-konva';
-// import axios from "axios";
+// import {createRoot} from 'react-dom/client';
+import {Image, Layer, Stage, Text} from 'react-konva';
 import useImage from 'use-image';
+import {ResizableBox} from 'react-resizable';
 
 function PictureUpload() {
     const [file, setFile] = useState(null);
@@ -59,6 +60,9 @@ function PictureUpload() {
     );
 }
 
+
+let count_element = 0;
+
 function ImageEditor() {
     function MemeCard(props) {
         return (
@@ -67,7 +71,7 @@ function ImageEditor() {
                 <div className="card-body">
                     <Button onClick={() => {
                         setTemplateSrc(props.file);
-                        set_template()
+                        set_template();
                     }
                     }>Use</Button>
                     {/*<Button onClick={() => {*/}
@@ -80,22 +84,27 @@ function ImageEditor() {
     }
 
     function TemplateMasonry() {
+        // console.log("TemplateMasonry")
         const [state, setState] = React.useState(null);
         useEffect(() => {
-            fetch("http://localhost:3001/templates", {
-                headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
-            })
-                .then(response => response.json())
-                .then(data => setState(data));
+            if (state === null) {
+                fetch("http://localhost:3001/templates", {
+                    headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
+                })
+                    .then(response => response.json())
+                    .then(data => setState(data));
+            }
         }, [state]);
         if (state === null) {
+            // console.log("Loading")
             return <div>Loading...</div>;
         } else {
+            // console.log("Rendering")
             return (
-                <Masonry columns={4} spacing={2}>
-                    {state.map((filename, index) => (
+                <Masonry columns={5} spacing={2}>
+                    {state.map((template, index) => (
                         <div key={index}>
-                            <MemeCard file={"http://localhost:3001/images/templates/" + filename}/>
+                            <MemeCard file={"http://localhost:3001/images/templates/" + template.file}/>
                         </div>
                     ))}
                 </Masonry>
@@ -103,26 +112,6 @@ function ImageEditor() {
         }
     }
 
-    let count_element = 0;
-    // count_element = count_element + 1;
-    // const INITIAL_STATE_IMAGE = [
-    //     {
-    //         id: count_element.toString(),
-    //         src: "http://localhost:3001/images/templates/Aint%20no%20body%20got%20time%20fo%20dat.jpg",
-    //         x: 0,
-    //         y: 0,
-    //     }
-    // ];
-    // count_element = count_element + 1;
-    // const INITIAL_STATE_TEXT = [
-    //     {
-    //         id: count_element.toString(),
-    //         text: "TEXT1",
-    //         x: 150,
-    //         y: 150,
-    //     }
-    // ];
-    count_element = count_element + 1;
     const INITIAL_STATE_TEMPLATE = {
         id: count_element.toString(),
         src: "http://localhost:3001/images/templates/advice_yoda_gives.jpg",
@@ -130,83 +119,60 @@ function ImageEditor() {
 
     const [show, setShow] = useState(false);
     // const [images, setImages] = useState(INITIAL_STATE_IMAGE);
-    // const [image, setImage] = useState('');
     const [templateSrc, setTemplateSrc] = useState("");
     const [template, setTemplate] = useState(INITIAL_STATE_TEMPLATE);
+    const [template_image] = useImage(templateSrc, 'anonymous');
+    useEffect(() => {
+        if (template_image) {
+            setStageSize({width: template_image.naturalWidth, height: template_image.naturalHeight});
+        }
+    }, [template_image]);
     const [texts, setTexts] = useState([]);
-    const [text, setText] = useState('');
     useEffect(() => {
         // setImages(images);
         setTemplateSrc(templateSrc);
         setTemplate(template);
         setTexts(texts);
-        setText(text);
-    }, [texts, text, template, templateSrc]);
+    }, [texts, template, templateSrc]);
 
-    function downloadURI(uri, name) {
-        const link = document.createElement('a');
-        link.download = name;
-        link.href = uri;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    // const handleDragStartImage = (e) => {
-    //     const id = e.target.id();
-    //     setImages(
-    //         images.map((image) => {
-    //             return {
-    //                 ...image
-    //             };
-    //         })
-    //     );
-    // };
-    // const handleDragEndImage = (e) => {
-    //     setImages(
-    //         images.map((image) => {
-    //             return {
-    //                 ...image
-    //             };
-    //         })
-    //     );
-    // };
-
-
-    const handleDragStartText = (e) => {};
-    const handleDragEndText = (e) => {};
-    const stageRef = React.useRef(null);
-
-    const handleExport = () => {
-        const uri = stageRef.current.toDataURL();
-        downloadURI(uri, 'stage.png');
+    const onResize = (event, {element, size}) => {
+        setStageSize(size.width, size.height)
     };
 
-    const addText = () => {
+
+
+    const addTextOnTopOfImage = (textContent, x, y) => {
         count_element = count_element + 1;
-        texts.push({
+        setTexts(prevTexts => [...prevTexts, {
             id: count_element.toString(),
-            text: text,
-            x: 150,
-            y: 150
-        })
-        setTexts(texts);
-        handleDragEndText();
+            text: textContent,
+            x: x,
+            y: y,
+            fontSize: 30,
+            fontColor: 'black',
+            fontFamily: "Arial",
+            backgroundColor: 'white'
+        }]);
+        console.log(count_element);
     }
 
-    // const addImage = () => {
-    //     count_element = count_element + 1;
-    //     texts.push({
-    //         id: count_element.toString(),
-    //         src: image,
-    //         text: text,
-    //         x: 150,
-    //         y: 150
-    //     })
-    //     setTexts(texts);
-    //     console.log(texts);
-    //     handleDragEndImage();
-    // }
+    const updateTextFormat = (id, fontSize, fontColor, fontFamily, backgroundColor) => {
+        const newTexts = texts.map((text) => {
+            if (text.id === id) {
+                return {
+                    ...text,
+                    fontSize: parseInt(fontSize),
+                    fontColor: fontColor,
+                    fontFamily: fontFamily,
+                    backgroundColor: backgroundColor
+                };
+            } else {
+                return text;
+            }
+        });
+        setTexts(newTexts);
+        console.log(texts)
+    }
 
     const set_template = () => {
         count_element = count_element + 1;
@@ -214,58 +180,114 @@ function ImageEditor() {
             id: count_element.toString(),
             src: templateSrc
         });
-        // console.log(texts);
-        handleDragEndText();
     }
 
+    const [selectedTextId, setSelectedTextId] = useState('');
+    const [stageSize, setStageSize] = useState({width: 100, height: 100});
+
+    const stageRef = React.useRef(null);
+
+    // Extra function for handling download
+    const handleExport = React.useCallback(() => {
+        if (stageRef.current) {
+            const url = stageRef.current.toDataURL();
+            var link = document.createElement('a');
+            link.download = 'MemeImage.png';
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }, [stageRef]);
 
     const Template = () => {
-        const [template_image] = useImage(templateSrc);
+
         return (
             <Layer>
-                <Rect x={0} y={0} width={canvas_width} height={canvas_height} fill="#FFFFFF"/>
-                {/*{images.map((template_image) => (*/}
-                {/*    <GetImage*/}
-                {/*        id={template_image.id}*/}
-                {/*        key={template_image.id}*/}
-                {/*        url={template_image.src}*/}
-                {/*        x={0}*/}
-                {/*        y={0}*/}
-                {/*        onDragStart={handleDragStartImage}*/}
-                {/*        onDragEnd={handleDragEndImage}*/}
-                {/*     />*/}
-                {/*))}*/}
                 <Image key={template.id} image={template_image} x={0} y={0}/>
                 {texts.map((text) => (
-                    <Text key={text.id} id={text.id} text={text.text} x={text.x} y={text.y} draggable onDragStart={handleDragStartText} onDragEnd={handleDragEndText}/>
+                    <Text key={text.id} id={text.id} text={text.text} x={text.x} y={text.y}
+                          fontSize={text.fontSize}
+                          fill={text.fontColor}
+                          fontFamily={text.fontFamily}
+                          background={text.backgroundColor}
+                          draggable
+                          onClick={() => setSelectedTextId(text.id)}
+                          onDragEnd={(e) => {
+                              const id = e.target.id();
+                              const newTexts = texts.map((text) => {
+                                  if (text.id === id) {
+                                      return {...text, x: e.target.x(), y: e.target.y()};
+                                  } else {
+                                      return text;
+                                  }
+                              });
+                              setTexts(newTexts);
+                          }}/>
                 ))}
             </Layer>
         )
     };
 
-    const canvas_width = 800;
-    const canvas_height = 600
+    const colRef = React.useRef(null);
+    const [colWidth, setColWidth] = React.useState(0);
+    React.useEffect(() => {
+        if (colRef.current) {
+            setColWidth(colRef.current.offsetWidth);
+        }
+    }, []);
 
     return (
         <>
             <Container>
                 <div className="meme-editor-container">
                     <Fragment>
-                        <Button variant="primary" onClick={() => setShow(true)}>Gallery</Button>
-                        <Button>Publish</Button>
-                        <Button>Save as Private</Button>
+                        <Button variant="primary" onClick={() => setShow(true)}>New Meme</Button>
                         <Button>Save Draft</Button>
+                        <Button>Publish</Button>
                         <Button onClick={handleExport}>Download</Button>
-                        <Form.Group className="m-0">
-                            <Form.Control type="text" placeholder="Enter text" value={text}
-                                          onChange={(e) => setText(e.target.value)}/>
-                            <Button onClick={addText}>Add Text</Button>
-                        </Form.Group>
-                        <Stage width={canvas_width} height={canvas_height} ref={stageRef}>
-                            <Template/>
-                        </Stage>
                     </Fragment>
                 </div>
+                <Row>
+                    <Col sm={3}>
+                        <form onSubmit={event => {
+                            event.preventDefault();
+                            addTextOnTopOfImage(event.target.elements[0].value, 50, 50);
+                        }}>
+                            <FormControl type="text" placeholder="Text"/>
+                            <Button type="submit" variant="primary">Add Text</Button>
+                        </form>
+                        <form onSubmit={event => {
+                            event.preventDefault();
+                            updateTextFormat(
+                                event.target.elements[0].value, // id
+                                event.target.elements[1].value, // fontSize
+                                event.target.elements[2].value, // fontColor
+                                event.target.elements[3].value, // fontFamily
+                                event.target.elements[4].value  // backgroundColor
+                            );
+                        }}>
+                            <FormControl type="text" placeholder="Text ID" value={selectedTextId} readOnly/>
+                            <FormControl type="number" placeholder="Font Size"/>
+                            <FormControl type="text" placeholder="Font Color"/>
+                            <FormControl type="text" placeholder="Font Family"/>
+                            <FormControl type="text" placeholder="Background Color"/>
+                            <Button type="submit" variant="primary">Update Text Format</Button>
+                        </form>
+                    </Col>
+                    <Col sm={9} ref={colRef}>
+                        <ResizableBox
+                            className="custom-box box"
+                            width={200}
+                            height={200}
+                            handle={<span className="custom-handle custom-handle-se"/>}
+                            handleSize={[8, 8]}>
+                            <Stage width={stageSize.width} height={stageSize.height} ref={stageRef}>
+                                <Template/>
+                            </Stage>
+                        </ResizableBox>
+                    </Col>
+                </Row>
             </Container>
             <Modal
                 show={show}
@@ -282,12 +304,14 @@ function ImageEditor() {
                 <Modal.Body>
                     <div className="template_popup_content">
                         <Tabs defaultActiveKey="default" id="uncontrolled-tab-example" className="mb-3">
-                            <Tab eventKey="default" title="Default Templates">
+                            <Tab eventKey="default" title="From Template">
                                 <TemplateMasonry/>
                             </Tab>
-                            <Tab eventKey="custom" title="Custom Templates">
+                            <Tab eventKey="custom" title="Upload an Image">
                                 <PictureUpload/>
-                                <TemplateMasonry/>
+                            </Tab>
+                            <Tab eventKey="url" title="From URL">
+                                <PictureUpload/>
                             </Tab>
                         </Tabs>
                     </div>

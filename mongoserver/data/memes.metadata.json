@@ -1,1 +1,1 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"80bcf0cd8a1048939cbcf9f26cc0705d","collectionName":"memes","type":"collection"}
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"3bf5ceff1d2645b295ecb19b3fd8db10","collectionName":"memes","type":"collection"}
