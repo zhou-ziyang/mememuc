@@ -6,9 +6,12 @@ import React, {Fragment, useEffect, useState} from "react";
 import {Form, Button, Col, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
 import {Masonry} from "@mui/lab";
 // import {createRoot} from 'react-dom/client';
-import {Image, Layer, Stage, Text, Transformer, Rect} from 'react-konva';
+import {Image, Layer, Stage, Text, Transformer} from 'react-konva';
 import useImage from 'use-image';
 import {ResizableBox} from 'react-resizable';
+
+const DEFAULT_WIDTH = 512;
+const DEFAULT_HEIGHT = 512;
 
 function PictureUpload() {
     const [file, setFile] = useState(null);
@@ -69,28 +72,15 @@ function ImageEditor() {
             <div className="card">
                 <img className="card-img-top" src={props.file} alt={props.file}
                      onClick={() => {
-                         setTemplateSrc(props.file);
-                         set_template();
+                         setImageSrc(props.file);
                          setShow(false);
                      }
                      }/>
-                {/*<div className="card-body">*/}
-                {/*    <Button onClick={() => {*/}
-                {/*        setTemplateSrc(props.file);*/}
-                {/*        set_template();*/}
-                {/*    }*/}
-                {/*    }>Use</Button>*/}
-                {/*    /!*<Button onClick={() => {*!/*/}
-                {/*    /!*    setImage(props.file);*!/*/}
-                {/*    /!*    addImage();*!/*/}
-                {/*    /!*}}>Insert</Button>*!/*/}
-                {/*</div>*/}
             </div>
         )
     }
 
     function TemplateMasonry() {
-        // console.log("TemplateMasonry")
         const [state, setState] = React.useState(null);
         useEffect(() => {
             if (state === null) {
@@ -102,10 +92,8 @@ function ImageEditor() {
             }
         }, [state]);
         if (state === null) {
-            // console.log("Loading")
             return <div>Loading...</div>;
         } else {
-            // console.log("Rendering")
             return (
                 <Masonry columns={5} spacing={2}>
                     {state.map((template, index) => (
@@ -118,38 +106,36 @@ function ImageEditor() {
         }
     }
 
-    const INITIAL_STATE_TEMPLATE = {
-        id: count_element.toString(),
-        src: "http://localhost:3001/images/templates/advice_yoda_gives.jpg",
-    };
-
     const [show, setShow] = useState(false);
-    // const [images, setImages] = useState(INITIAL_STATE_IMAGE);
-    const [templateSrc, setTemplateSrc] = useState("");
-    const [template, setTemplate] = useState(INITIAL_STATE_TEMPLATE);
-    const [template_image] = useImage(templateSrc, 'anonymous');
+    const [imageSrc, setImageSrc] = useState(null);
+    const [image, status] = useImage(imageSrc, 'anonymous');
+    const [images, setImages] = useState([]);
+
     useEffect(() => {
-        if (template_image) {
-            setStageSize({width: template_image.naturalWidth, height: template_image.naturalHeight});
+        if (status === 'loaded') {
+            console.log(status)
+            addImage(image, 0, 0);
         }
-    }, [template_image]);
+    }, [imageSrc, status, image]);
+
     const [texts, setTexts] = useState([]);
     useEffect(() => {
-        // setImages(images);
-        setTemplateSrc(templateSrc);
-        setTemplate(template);
+        setImages(images);
         setTexts(texts);
-    }, [texts, template, templateSrc]);
+    }, [images, texts]);
 
-    // const addImage = (imageSrc, x, y) => {
-    //     count_element = count_element + 1;
-    //     setImages(prevImages => [...prevImages, {
-    //         id: count_element.toString(),
-    //         src: templateSrc,
-    //         x: x,
-    //         y: y
-    //     }]);
-    // }
+    const addImage = (image, x, y) => {
+        count_element = count_element + 1;
+        setImages(prevImages => [...prevImages, {
+            id: count_element.toString(),
+            // src: imageSrc,
+            image: image,
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+            x: x,
+            y: y
+        }]);
+    }
 
     const addTextOnTopOfImage = (textContent, x, y) => {
         count_element = count_element + 1;
@@ -222,16 +208,8 @@ function ImageEditor() {
         setTexts(newTexts);
     }
 
-    const set_template = () => {
-        count_element = count_element + 1;
-        setTemplate({
-            id: count_element.toString(),
-            src: templateSrc
-        });
-    }
-
     const [selectedTextId, setSelectedTextId] = useState('');
-    const [stageSize, setStageSize] = useState({width: 512, height: 512});
+    const [stageSize, setStageSize] = useState({width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT});
 
     const stageRef = React.useRef(null);
 
@@ -250,24 +228,26 @@ function ImageEditor() {
 
     const [selectedId, selectShape] = useState(null);
 
-    const Rectangle = ({shapeProps, isSelected, onSelect, onChange}) => {
-        const shapeRef = React.useRef();
+    const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
+        const memeImageRef = React.useRef();
         const trRef = React.useRef();
+
+        console.log(status);
 
         React.useEffect(() => {
             if (isSelected) {
                 // we need to attach transformer manually
-                trRef.current.nodes([shapeRef.current]);
+                trRef.current.nodes([memeImageRef.current]);
                 trRef.current.getLayer().batchDraw();
             }
         }, [isSelected]);
 
         return (
             <React.Fragment>
-                <Rect
+                <Image
                     onClick={onSelect}
                     onTap={onSelect}
-                    ref={shapeRef}
+                    ref={memeImageRef}
                     {...shapeProps}
                     draggable
                     onDragEnd={(e) => {
@@ -282,7 +262,7 @@ function ImageEditor() {
                         // and NOT its width or height
                         // but in the store we have only width and height
                         // to match the data better we will reset scale on transform end
-                        const node = shapeRef.current;
+                        const node = memeImageRef.current;
                         const scaleX = node.scaleX();
                         const scaleY = node.scaleY();
 
@@ -316,49 +296,24 @@ function ImageEditor() {
         );
     };
 
-
-    const initialRectangles = [
-        {
-            x: 10,
-            y: 10,
-            width: 100,
-            height: 100,
-            fill: 'red',
-            id: 'rect1',
-        },
-        {
-            x: 150,
-            y: 150,
-            width: 100,
-            height: 100,
-            fill: 'green',
-            id: 'rect2',
-        },
-    ];
-    const [rectangles, setRectangles] = React.useState(initialRectangles);
-    // const [selectedId, selectShape] = React.useState(null);
-
     const MemeCanvas = () => {
         return (
             <Layer>
-                {/*<Image key={template.id} name={template.id} image={template_image} x={0} y={0} draggable/>*/}
-                {/*<Transformer selectedShapeName={template.id}/>*/}
-                {rectangles.map((rect, i) => (
-                    <Rectangle
-                        key={i}
-                        shapeProps={rect}
-                        isSelected={rect.id === selectedId}
+                {images.map((image, i) => (
+                    <MemeImage
+                        key={image.id}
+                        shapeProps={image}
+                        isSelected={image.id === selectedId}
                         onSelect={() => {
-                            selectShape(rect.id);
+                            selectShape(image.id);
                         }}
                         onChange={(newAttrs) => {
-                            const rects = rectangles.slice();
-                            rects[i] = newAttrs;
-                            setRectangles(rects);
+                            const imgs = images.slice();
+                            imgs[i] = newAttrs;
+                            setImages(imgs);
                         }}
                     />
                 ))}
-                {/*<ImageElement/>*/}
                 {texts.map((text) => {
                     const updateFormatElement = () => {
                         setSelectedTextId(text.id);
@@ -400,14 +355,6 @@ function ImageEditor() {
         )
     };
 
-    const colRef = React.useRef(null);
-    const [colWidth, setColWidth] = React.useState(0);
-    React.useEffect(() => {
-        if (colRef.current) {
-            setColWidth(colRef.current.offsetWidth);
-        }
-    }, []);
-
     return (
         <>
             <Container>
@@ -446,7 +393,7 @@ function ImageEditor() {
                             {/*<input type="color" name="backgroundColor" title="Choose your color"/>*/}
                         </form>
                     </Col>
-                    <Col sm={9} ref={colRef}>
+                    <Col sm={9}>
                         <ResizableBox
                             className="custom-box box"
                             width={stageSize.width}
