@@ -23,6 +23,7 @@ const usersRouter = require('./routes/users');
 const templatesRouter = require('./routes/templates');
 const memesRouter = require('./routes/memes');
 const myMemesRouter = require('./routes/my_memes');
+const apisRouter = require('./routes/apis');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -82,6 +83,7 @@ app.use('/users', usersRouter);
 app.use('/templates', templatesRouter);
 app.use('/memes', memesRouter);
 app.use('/my_memes', myMemesRouter);
+app.use('/apis', apisRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
