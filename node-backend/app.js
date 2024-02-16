@@ -57,7 +57,7 @@ app.use((req, res, next) => {
     console.log("AUTHORIZATION: " + req.headers.authorization)
     users.findOne({basicauthtoken: req.headers.authorization}).then(user => {
         // console.log(user)
-        if (req.path.startsWith('/images/templates') || req.path.startsWith('/images/memes')) {
+        if (req.path.startsWith('/images')) {
             console.log("Skipping authentication")
             next();
         } else if (user) {

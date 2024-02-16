@@ -1,17 +1,17 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import {Container} from "react-bootstrap";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
-
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 function APIs() {
-    const [show, setShow] = useState(false);
     const [loginForm, setLoginForm] = useState({username: "", password: ""});
 
     // Handle form field changes
     const handleChange = (e) => {
-        setLoginForm({...loginForm, [e.target.name]: e.target.value});
+        setLoginForm(
+            {...loginForm, [e.target.name]: e.target.value});
     }
 
     // Handle form submission
@@ -71,9 +71,18 @@ function APIs() {
                                 onChange={handleChange}
                             />
                         </Form.Group>
-                        <div className="modal-footer">
                             <Button variant="success" type="submit">Log In</Button>
-                        </div>
+                            <GoogleOAuthProvider clientId="858594356770-2ibbo40qjm34kfkd46tnj62i2ed2f68f.apps.googleusercontent.com">
+                                <GoogleLogin
+                                    onSuccess={credentialResponse => {
+                                        console.log(credentialResponse);
+                                    }}
+                                    onError={() => {
+                                        console.log('Login Failed');
+                                    }}
+                                    ux_mode={"popup"}
+                                />
+                            </GoogleOAuthProvider>
                     </Form>
                 </div>
             </div>

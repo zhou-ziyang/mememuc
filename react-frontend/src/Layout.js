@@ -1,7 +1,4 @@
-import React, {useState, useEffect} from "react";
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
+import React, {useEffect} from "react";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
@@ -9,7 +6,6 @@ import NavDropdown from 'react-bootstrap/NavDropdown';
 import {LinkContainer} from 'react-router-bootstrap';
 import {Link, Outlet} from "react-router-dom";
 import './Layout.css';
-// import setProps from './Login';
 
 function NavItems() {
     const [props, setProps] = React.useState({});
@@ -21,6 +17,8 @@ function NavItems() {
             setProps({loggedin:loggedin, userId:userId, username:username});
         }
     }, []);
+
+    const [lastPath, setLastPath] = React.useState('');
 
     const handleLogout = () => {
         // localStorage.removeItem('loggedin');
@@ -45,7 +43,6 @@ function NavItems() {
                     <NavDropdown title={props.username} id="collasible-nav-dropdown">
                         <NavDropdown.Item as={Link} to="/my_memes">My Memes</NavDropdown.Item>
                         <NavDropdown.Item as={Link} to="">Drafts</NavDropdown.Item>
-                        {/*<NavDropdown.Item as={Link} to="/account/social">Social</NavDropdown.Item>*/}
                         <NavDropdown.Divider/>
                         <NavDropdown.Item as={Link} onClick={handleLogout}>Sign out</NavDropdown.Item>
                     </NavDropdown>

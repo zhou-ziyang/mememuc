@@ -2,68 +2,21 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './AddMeme.css'
 import './Resizable.css'
 import Container from "react-bootstrap/Container";
-import React, {Fragment, useEffect, useState} from "react";
+import React, {Fragment, useEffect, useState, useRef, useCallback} from "react";
 import {Form, Button, Col, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
 import {Masonry} from "@mui/lab";
 // import {createRoot} from 'react-dom/client';
 import {Image, Layer, Stage, Text, Transformer} from 'react-konva';
 import useImage from 'use-image';
 import {ResizableBox} from 'react-resizable';
+import Webcam from "react-webcam";
+import * as htmlToImage from 'html-to-image';
+import {toPng, toJpeg, toBlob} from 'html-to-image';
+import { useHotkeys } from 'react-hotkeys-hook';
+
 
 const DEFAULT_WIDTH = 512;
 const DEFAULT_HEIGHT = 512;
-
-// function PictureUpload() {
-//     const [file, setFile] = useState(null);
-//
-//     const handleFileChange = (event) => {
-//         setFile(event.target.files[0]);
-//     };
-//
-//     const handleSubmit = async (event) => {
-//         event.preventDefault();
-//
-//         if (!file) {
-//             alert('Please select a file to upload.');
-//             return;
-//         }
-//
-//         const formData = new FormData();
-//         formData.append('file', file);
-//
-//         try {
-//             const response = await fetch('http://localhost:3001/upload', {
-//                 method: 'POST',
-//                 body: formData,
-//             });
-//
-//             if (response.ok) {
-//                 alert('File uploaded successfully.');
-//                 setFile(null);
-//             } else {
-//                 throw new Error('File upload failed.');
-//             }
-//         } catch (error) {
-//             console.error(error);
-//             alert('File upload failed.');
-//         }
-//     };
-//
-//     return (
-//         <form onSubmit={handleSubmit}>
-//             <FormControl
-//                 type="file"
-//                 onChange={handleFileChange}
-//                 accept=".jpg,.png,.jpeg"
-//             />
-//             <Button type="submit" variant="primary">
-//                 Upload
-//             </Button>
-//         </form>
-//     );
-// }
-
-
 let count_element = 0;
 
 function ImageEditor() {
@@ -108,7 +61,7 @@ function ImageEditor() {
 
     const [show, setShow] = useState(false);
     const [imageSrc, setImageSrc] = useState(null);
-    const [image, status] = useImage(imageSrc, 'anonymous');
+    const [image, status] = useImage(imageSrc); //, 'anonymous'
     const [images, setImages] = useState([]);
 
     useEffect(() => {
@@ -124,14 +77,94 @@ function ImageEditor() {
         setTexts(texts);
     }, [images, texts]);
 
+    const webcamRef = useRef(null);
+
+    const capture = useCallback(
+        () => {
+            const imageSrc = webcamRef.current.getScreenshot();
+            setImageSrc(imageSrc);
+            setShow(false);
+        },
+        [webcamRef]
+    );
+
+    const [activeTab, setActiveTab] = useState('');
+
+    const WebcamCapture = () => {
+        return (
+            <>
+                {activeTab === 'webcam' && <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" />}
+                <Button variant="primary" onClick={capture}>
+                    Capture photo
+                </Button>
+            </>
+        );
+    };
+
+    function PictureUpload() {
+        const [file, setFile] = useState(null);
+
+        const handleFileChange = (event) => {
+            setFile(event.target.files[0]);
+        };
+
+        const handleSubmit = async (event) => {
+            event.preventDefault();
+
+            if (!file) {
+                alert('Please select a file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('http://localhost:3001/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
+                });
+
+                if (response.ok) {
+                    // alert('File uploaded successfully.');
+                    const result = await response.json();
+                    const image_src = "http://localhost:3001/" + result.file.path.slice(7)
+                    setImageSrc(image_src);
+                    console.log(image_src);
+                } else {
+                    // throw new Error('File upload failed.');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('File upload failed.');
+            }
+        };
+
+        return (
+            <form onSubmit={handleSubmit}>
+                <FormControl
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".jpg,.png,.jpeg"
+                />
+                <Button type="submit" variant="primary">
+                    Upload
+                </Button>
+            </form>
+        );
+    }
+
     const addImage = (image, x, y) => {
         count_element = count_element + 1;
+        const aspectRatio = image.naturalWidth / image.naturalHeight;
+        const newWidth = aspectRatio > 1 ? DEFAULT_WIDTH : DEFAULT_HEIGHT * aspectRatio;
+        const newHeight = aspectRatio < 1 ? DEFAULT_HEIGHT : DEFAULT_WIDTH / aspectRatio;
         setImages(prevImages => [...prevImages, {
             id: count_element.toString(),
-            // src: imageSrc,
             image: image,
-            width: image.naturalWidth,
-            height: image.naturalHeight,
+            width: newWidth,
+            height: newHeight,
             x: x,
             y: y
         }]);
@@ -227,6 +260,17 @@ function ImageEditor() {
     }, [stageRef]);
 
     const [selectedId, selectShape] = useState(null);
+
+    // This function will remove the selected image
+    const deleteSelectedImage = () => {
+        if (selectedId) {
+            setImages(prevImages => prevImages.filter(image => image.id !== selectedId));
+            selectShape(null);  // deselect the image
+        }
+    };
+
+    // Use the 'useHotkeys' hook in your component to listen for the 'Delete' key press
+    useHotkeys('backspace', deleteSelectedImage);
 
     const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
         const memeImageRef = React.useRef();
@@ -375,7 +419,7 @@ function ImageEditor() {
                     formData.append('comment', JSON.stringify([]));
 
                     try {
-                        const response = await fetch('http://localhost:3001/upload', {
+                        const response = await fetch('http://localhost:3001/publish', {
                             method: 'POST',
                             body: formData,
                             headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
@@ -431,7 +475,9 @@ function ImageEditor() {
                                 <option value="Georgia">Georgia</option>
                             </Form.Select>
                             {/*<input type="color" name="backgroundColor" title="Choose your color"/>*/}
+
                         </form>
+
                     </Col>
                     <Col sm={9}>
                         <ResizableBox
@@ -462,15 +508,74 @@ function ImageEditor() {
                 </Modal.Header>
                 <Modal.Body>
                     <div className="template_popup_content">
-                        <Tabs defaultActiveKey="default" id="uncontrolled-tab-example" className="mb-3">
+                        <Tabs defaultActiveKey="default" id="uncontrolled-tab-example" className="mb-3" onSelect={key => setActiveTab(key)}>
                             <Tab eventKey="default" title="From Template">
                                 <TemplateMasonry/>
                             </Tab>
                             <Tab eventKey="custom" title="Upload an Image">
-                                {/*<PictureUpload/>*/}
+                                <PictureUpload/>
                             </Tab>
                             <Tab eventKey="url" title="From URL">
-                                {/*<PictureUpload/>*/}
+                                <Form onSubmit={event => {
+                                    event.preventDefault();
+                                    const url = 'https://corsproxy.io/?' + encodeURIComponent(event.target.elements[0].value);
+                                    setImageSrc(url);
+                                }}>
+                                    <Form.Group className="mb-3" controlId="formBasicEmail">
+                                        <Form.Control type="text" placeholder="Enter URL"/>
+                                    </Form.Group>
+                                    <Button variant="primary" type="submit">
+                                        Submit
+                                    </Button>
+                                </Form>
+                            </Tab>
+                            <Tab eventKey="webcam" title="From Webcam">
+                                <WebcamCapture/>
+                            </Tab>
+                            <Tab eventKey="screenshot" title="Screenshot from URL">
+                                <Form onSubmit={event => {
+                                    event.preventDefault();
+                                    // const screenshot_url = "https://api.screenshotone.com/take?\n" +
+                                    //     "\taccess_key=aXb8vQfDtLyFjA\n" +
+                                    //     "\t&url=" + event.target.elements[0].value + "\n" +
+                                    //     "\t&full_page=false\n" +
+                                    //     "\t&viewport_width=1920\n" +
+                                    //     "\t&viewport_height=1280\n" +
+                                    //     "\t&device_scale_factor=1\n" +
+                                    //     "\t&format=jpg\n" +
+                                    //     "\t&image_quality=80"
+                                    // const url = 'https://corsproxy.io/?' + encodeURIComponent(screenshot_url);
+
+                                    const encodedParams = new URLSearchParams();
+                                    encodedParams.set('html', '<REQUIRED>');
+                                    const url = 'https://api.screenshotone.com/take?access_key=aXb8vQfDtLyFjA&url=https%3A%2F%2Fstripe.com&viewport_width=1920&viewport_height=1280&device_scale_factor=1&image_quality=80&format=jpg&block_ads=true&block_cookie_banners=true&full_page=false&block_trackers=true&block_banners_by_heuristics=false&delay=0&timeout=60';
+                                    fetch(url, {
+                                        method: 'POST',
+                                        headers: {
+                                            'content-type': 'application/x-www-form-urlencoded',
+                                            'X-RapidAPI-Key': 'b1eab662f6msh2cffc30ce352155p118be9jsn41275070431e',
+                                            'X-RapidAPI-Host': 'ApiLeapzakutynskyV1.p.rapidapi.com'
+                                        },
+                                        body: encodedParams
+                                    })
+                                        .then(response => {
+                                            if (!response.ok) {
+                                                throw new Error('Network response was not ok');
+                                            }
+                                            console.log(response);
+                                        })
+                                        .catch(error => {
+                                            console.error('There has been a problem with your fetch operation:', error);
+                                        });
+                                    // setImageSrc(url);
+                                }}>
+                                    <Form.Group className="mb-3" controlId="formBasicEmail">
+                                        <Form.Control type="text" placeholder="Enter URL"/>
+                                    </Form.Group>
+                                    <Button variant="primary" type="submit">
+                                        Submit
+                                    </Button>
+                                </Form>
                             </Tab>
                         </Tabs>
                     </div>

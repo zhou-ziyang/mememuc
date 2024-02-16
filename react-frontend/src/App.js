@@ -2,16 +2,14 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import {Button, Card, Col, Container, Row, Stack} from "react-bootstrap";
 import React, {useEffect} from "react";
 
-
 function MemeItem(props) {
-    // console.log(props.file)
     const path = "http://localhost:3001/" + props.file.file.slice(7)
     return (
         <Card>
             <Card.Body>
                 <Row>
                     <Col xs={3}>
-                        <img src={path} width="100%"/>
+                        <img src={path} width="100%" alt=""/>
                     </Col>
                     <Col>
                         <Card.Title><h2>{props.file.title}</h2></Card.Title>

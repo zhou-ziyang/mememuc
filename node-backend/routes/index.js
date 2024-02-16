@@ -5,7 +5,7 @@ const fs = require('fs');
 const router = express.Router();
 
 // Configure multer storage
-const storage = multer.diskStorage({
+const memeStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, './public/images/memes/');
   },
@@ -14,7 +14,9 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const publish = multer({ storage: memeStorage });
+
+const upload = multer({ dest: './public/images/uploads/' });
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -22,8 +24,11 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/upload', upload.single('file'), async (req, res) => {
+  res.send({file: req.file});
+});
+
+router.post('/publish', publish.single('file'), async (req, res) => {
   const db = req.db;
-  // console.log(db);
   const memes = db.get('memes');
 
   // Construct the meme document for MongoDB
