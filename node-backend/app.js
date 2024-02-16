@@ -24,6 +24,7 @@ const templatesRouter = require('./routes/templates');
 const memesRouter = require('./routes/memes');
 const myMemesRouter = require('./routes/my_memes');
 const apisRouter = require('./routes/apis');
+const loginRouter = require('./routes/login');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -53,14 +54,16 @@ app.use(function (req, res, next) {
 // the login middleware. Requires BasicAuth authentication
 app.use((req, res, next) => {
     const users = db.get('users');
+    console.log("AUTHORIZATION: " + req.headers.authorization)
     users.findOne({basicauthtoken: req.headers.authorization}).then(user => {
         // console.log(user)
-        if (req.path.startsWith('/images/templates')) {
-            console.log("Skipping authentication for image request.")
+        if (req.path.startsWith('/images/templates') || req.path.startsWith('/images/memes')) {
+            console.log("Skipping authentication")
             next();
         } else if (user) {
             req.username = user.username;  // test test => Basic dGVzdDp0ZXN0
             req.id = user._id;
+            req.loggedin = true;
             next()
             console.log("Logged in.")
         } else {
@@ -84,6 +87,7 @@ app.use('/templates', templatesRouter);
 app.use('/memes', memesRouter);
 app.use('/my_memes', myMemesRouter);
 app.use('/apis', apisRouter);
+app.use('/login', loginRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

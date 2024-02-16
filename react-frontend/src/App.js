@@ -1,11 +1,11 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {Card, Col, Container, Row, Stack} from "react-bootstrap";
+import {Button, Card, Col, Container, Row, Stack} from "react-bootstrap";
 import React, {useEffect} from "react";
 
 
 function MemeItem(props) {
     // console.log(props.file)
-    const path= "http://localhost:3001/" + props.file.file.slice(7)
+    const path = "http://localhost:3001/" + props.file.file.slice(7)
     return (
         <Card>
             <Card.Body>
@@ -20,6 +20,14 @@ function MemeItem(props) {
                             <br/>
                             Created by {props.file.author} at {props.file.date}
                         </Card.Text>
+                        {(localStorage.getItem('loggedin') === 'true') && (
+                            <>
+                                {/*<Button variant="primary">Edit</Button>*/}
+                                {/*<Button variant="danger">Delete</Button>*/}
+                                <Button variant="success">Vote Up</Button>
+                                <Button variant="danger">Vote Down</Button>
+                            </>
+                        )}
                     </Col>
                 </Row>
             </Card.Body>

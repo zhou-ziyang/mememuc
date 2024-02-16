@@ -21,7 +21,7 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
-router.post('/api/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', upload.single('file'), async (req, res) => {
   const db = req.db;
   // console.log(db);
   const memes = db.get('memes');
@@ -55,6 +55,14 @@ router.post('/api/upload', upload.single('file'), async (req, res) => {
     console.error(err);
     res.status(500).send('Error occurred while saving meme to the database');
   }
+});
+
+router.get('/state', function(req, res, next) {
+  res.send({userId: req.userId, username: req.username});
+});
+
+router.get('/login', async (req, res) => {
+  res.send({ status: 'ok', message: 'Logged in successfully', userId: req.userId, username: req.username, loggedin: true });
 });
 
 module.exports = router;

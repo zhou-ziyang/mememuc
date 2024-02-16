@@ -8,6 +8,7 @@ import AddMeme from "./AddMeme";
 import Layout from "./Layout";
 import MyMemes from "./MyMemes";
 import APIs from "./APIs";
+import Login from "./Login";
 // import { registerLicense } from '@syncfusion/ej2-base'
 
 // Registering Syncfusion license key
@@ -23,6 +24,7 @@ root.render(
                     <Route path="add_meme" element={<AddMeme/>}/>
                     <Route path="my_memes" element={<MyMemes/>}/>
                     <Route path="apis" element={<APIs/>}/>
+                    <Route path="login" element={<Login/>}/>
                 </Route>
             </Routes>
         </BrowserRouter>

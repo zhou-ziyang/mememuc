@@ -32,7 +32,7 @@ const DEFAULT_HEIGHT = 512;
 //         formData.append('file', file);
 //
 //         try {
-//             const response = await fetch('http://localhost:3001/api/upload', {
+//             const response = await fetch('http://localhost:3001/upload', {
 //                 method: 'POST',
 //                 body: formData,
 //             });
@@ -375,7 +375,7 @@ function ImageEditor() {
                     formData.append('comment', JSON.stringify([]));
 
                     try {
-                        const response = await fetch('http://localhost:3001/api/upload', {
+                        const response = await fetch('http://localhost:3001/upload', {
                             method: 'POST',
                             body: formData,
                             headers: {"Authorization": "Basic dGVzdDp0ZXN0"}

@@ -1,13 +1,39 @@
+import React, {useState, useEffect} from "react";
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
-import './Layout.css';
-import {LinkContainer} from 'react-router-bootstrap'
+import {LinkContainer} from 'react-router-bootstrap';
 import {Link, Outlet} from "react-router-dom";
+import './Layout.css';
+// import setProps from './Login';
 
-function NavItems(props) {
-    if (props.logged) {
+function NavItems() {
+    const [props, setProps] = React.useState({});
+    useEffect(() => {
+        const loggedin = localStorage.getItem('loggedin');
+        const userId = localStorage.getItem('userId');
+        const username = localStorage.getItem('username');
+        if (loggedin && userId && username) {
+            setProps({loggedin:loggedin, userId:userId, username:username});
+        }
+    }, []);
+
+    const handleLogout = () => {
+        // localStorage.removeItem('loggedin');
+        // localStorage.removeItem('userId');
+        // localStorage.removeItem('username');
+        localStorage.setItem('loggedin', false);
+        localStorage.setItem('userId', '');
+        localStorage.setItem('username', '');
+        // window.location.reload();
+        window.location.href = '/';
+    }
+
+    if (props.loggedin) {
         return (
             <Navbar.Collapse id="responsive-navbar-nav">
                 <Nav className="me-auto">
@@ -20,8 +46,8 @@ function NavItems(props) {
                         <NavDropdown.Item as={Link} to="/my_memes">My Memes</NavDropdown.Item>
                         <NavDropdown.Item as={Link} to="">Drafts</NavDropdown.Item>
                         {/*<NavDropdown.Item as={Link} to="/account/social">Social</NavDropdown.Item>*/}
-                        {/*<NavDropdown.Divider/>*/}
-                        {/*<NavDropdown.Item as={Link} eventKey={2}>Settings</NavDropdown.Item>*/}
+                        <NavDropdown.Divider/>
+                        <NavDropdown.Item as={Link} onClick={handleLogout}>Sign out</NavDropdown.Item>
                     </NavDropdown>
                 </Nav>
             </Navbar.Collapse>
@@ -32,20 +58,21 @@ function NavItems(props) {
                 <LinkContainer to="/"><Nav.Link>Home</Nav.Link></LinkContainer>
                 <LinkContainer to="/apis"><Nav.Link>APIs</Nav.Link></LinkContainer>
             </Nav>
+            <Nav>
+                <LinkContainer to="/login"><Nav.Link>Log In</Nav.Link></LinkContainer>
+            </Nav>
         </Navbar.Collapse>
     )
 }
 
 function Layout() {
-    let logged = true;
-    let username = "test";
     return (
         <div>
             <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
                 <Container>
                     <Navbar.Brand href="/">MEMEMUC</Navbar.Brand>
                     <Navbar.Toggle aria-controls="responsive-navbar-nav"/>
-                    <NavItems logged={logged} username={username}/>
+                    <NavItems/>
                 </Container>
             </Navbar>
             <Outlet/>
