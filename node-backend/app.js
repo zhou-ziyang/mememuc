@@ -64,9 +64,10 @@ app.use((req, res, next) => {
         } else if (user) {
             req.username = user.username;  // test test => Basic dGVzdDp0ZXN0
             req.id = user._id;
+            console.log("Logged in as " + req.id + " " + req.username + ".")
             req.loggedin = true;
             next()
-            console.log("Logged in.")
+            // console.log("Logged in.")
         } else {
             res.set('WWW-Authenticate', 'Basic realm="401"')
             res.status(401).send()
