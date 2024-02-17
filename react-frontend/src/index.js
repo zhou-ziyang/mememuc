@@ -7,6 +7,7 @@ import {BrowserRouter, Routes, Route} from "react-router-dom";
 import AddMeme from "./AddMeme";
 import Layout from "./Layout";
 import MyMemes from "./MyMemes";
+import Drafts from "./Drafts";
 import APIs from "./APIs";
 import Login from "./Login";
 // import { registerLicense } from '@syncfusion/ej2-base'
@@ -23,6 +24,7 @@ root.render(
                     <Route index element={<App/>}/>
                     <Route path="add_meme" element={<AddMeme/>}/>
                     <Route path="my_memes" element={<MyMemes/>}/>
+                    <Route path="drafts" element={<Drafts/>}/>
                     <Route path="apis" element={<APIs/>}/>
                     <Route path="login" element={<Login/>}/>
                 </Route>

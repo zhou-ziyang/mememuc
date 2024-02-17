@@ -8,7 +8,7 @@
 
 
 .meme-editor-container {
-    background: #EFEFEF;
+    /*background: #EFEFEF;*/
     /*border-left: 1px solid #282c34;*/
 }
 
@@ -20,4 +20,12 @@
 
 .modal-content {
     /*width: 800px;*/
+}
+
+.full-width {
+    width: 100%;
+}
+
+.canvas-panel {
+    /*background-color: #EFEFEF;*/
 }

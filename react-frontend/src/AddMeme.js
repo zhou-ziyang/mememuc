@@ -6,18 +6,22 @@ import React, {Fragment, useEffect, useState, useRef, useCallback} from "react";
 import {Form, Button, Col, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
 import {Masonry} from "@mui/lab";
 // import {createRoot} from 'react-dom/client';
-import {Image, Layer, Stage, Text, Transformer} from 'react-konva';
+import {Image, Layer, Stage, Text, Transformer, Rect, Label, Tag} from 'react-konva';
 import useImage from 'use-image';
 import {ResizableBox} from 'react-resizable';
 import Webcam from "react-webcam";
-import * as htmlToImage from 'html-to-image';
-import {toPng, toJpeg, toBlob} from 'html-to-image';
-import { useHotkeys } from 'react-hotkeys-hook';
+import {useHotkeys} from 'react-hotkeys-hook';
 
 
 const DEFAULT_WIDTH = 512;
 const DEFAULT_HEIGHT = 512;
 let count_element = 0;
+
+function UniqueId() {
+    count_element += 1
+    // console.log(count_element)
+    return count_element.toString();
+}
 
 function ImageEditor() {
     function MemeCard(props) {
@@ -25,6 +29,7 @@ function ImageEditor() {
             <div className="card">
                 <img className="card-img-top" src={props.file} alt={props.file}
                      onClick={() => {
+                         setToRenderImage(true);
                          setImageSrc(props.file);
                          setShow(false);
                      }
@@ -59,17 +64,35 @@ function ImageEditor() {
         }
     }
 
+    const addImage = (image, x, y) => {
+        const aspectRatio = image.naturalWidth / image.naturalHeight;
+        const canvasAspectRatio = stageSize.width / stageSize.height;
+        const newWidth = aspectRatio > canvasAspectRatio ? stageSize.width : stageSize.height * aspectRatio;
+        const newHeight = aspectRatio < canvasAspectRatio ? stageSize.height : stageSize.width / aspectRatio;
+        setImages(prevImages => [...prevImages, {
+            id: UniqueId(),
+            image: image,
+            width: newWidth,
+            height: newHeight,
+            x: x,
+            y: y
+        }]);
+        // console.log(images);
+    }
+
     const [show, setShow] = useState(false);
     const [imageSrc, setImageSrc] = useState(null);
-    const [image, status] = useImage(imageSrc); //, 'anonymous'
+    const [image, status] = useImage(imageSrc, 'anonymous');
+    const [toRenderImage, setToRenderImage] = useState(false);
     const [images, setImages] = useState([]);
 
     useEffect(() => {
         if (status === 'loaded') {
-            console.log(status)
+            // console.log(status)
             addImage(image, 0, 0);
+            setToRenderImage(false);
         }
-    }, [imageSrc, status, image]);
+    }, [image, toRenderImage]);
 
     const [texts, setTexts] = useState([]);
     useEffect(() => {
@@ -82,6 +105,7 @@ function ImageEditor() {
     const capture = useCallback(
         () => {
             const imageSrc = webcamRef.current.getScreenshot();
+            setToRenderImage(true);
             setImageSrc(imageSrc);
             setShow(false);
         },
@@ -93,7 +117,7 @@ function ImageEditor() {
     const WebcamCapture = () => {
         return (
             <>
-                {activeTab === 'webcam' && <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" />}
+                {activeTab === 'webcam' && <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg"/>}
                 <Button variant="primary" onClick={capture}>
                     Capture photo
                 </Button>
@@ -130,8 +154,9 @@ function ImageEditor() {
                     // alert('File uploaded successfully.');
                     const result = await response.json();
                     const image_src = "http://localhost:3001/" + result.file.path.slice(7)
+                    setToRenderImage(true);
                     setImageSrc(image_src);
-                    console.log(image_src);
+                    // console.log(image_src);
                 } else {
                     // throw new Error('File upload failed.');
                 }
@@ -155,34 +180,18 @@ function ImageEditor() {
         );
     }
 
-    const addImage = (image, x, y) => {
-        count_element = count_element + 1;
-        const aspectRatio = image.naturalWidth / image.naturalHeight;
-        const newWidth = aspectRatio > 1 ? DEFAULT_WIDTH : DEFAULT_HEIGHT * aspectRatio;
-        const newHeight = aspectRatio < 1 ? DEFAULT_HEIGHT : DEFAULT_WIDTH / aspectRatio;
-        setImages(prevImages => [...prevImages, {
-            id: count_element.toString(),
-            image: image,
-            width: newWidth,
-            height: newHeight,
-            x: x,
-            y: y
-        }]);
-    }
 
     const addTextOnTopOfImage = (textContent, x, y) => {
-        count_element = count_element + 1;
         setTexts(prevTexts => [...prevTexts, {
-            id: count_element.toString(),
+            id: UniqueId(),
             text: textContent,
             x: x,
             y: y,
             fontSize: 30,
             fontColor: '#000000',
             fontFamily: "Arial",
-            backgroundColor: 'white'
+            backgroundColor: 'transparent'
         }]);
-        // console.log(count_element);
     }
 
     const updateTextContent = (id, newTextContent) => {
@@ -233,6 +242,20 @@ function ImageEditor() {
                 return {
                     ...text,
                     fontFamily: fontFamily
+                };
+            } else {
+                return text;
+            }
+        });
+        setTexts(newTexts);
+    }
+
+    const updateBackgroundColor = (id, backgroundColor) => {
+        const newTexts = texts.map((text) => {
+            if (text.id === id) {
+                return {
+                    ...text,
+                    backgroundColor: backgroundColor
                 };
             } else {
                 return text;
@@ -320,6 +343,7 @@ function ImageEditor() {
                             // set minimal value
                             width: Math.max(5, node.width() * scaleX),
                             height: Math.max(node.height() * scaleY),
+                            rotation: node.rotation(),
                         });
                     }}
                 />
@@ -343,6 +367,14 @@ function ImageEditor() {
     const MemeCanvas = () => {
         return (
             <Layer>
+                <Rect
+                    fill={"#ffffff"}
+                    width={stageSize.width}
+                    height={stageSize.height}
+                    onClick={() => {
+                        selectShape(null);
+                    }}
+                />
                 {images.map((image, i) => (
                     <MemeImage
                         key={image.id}
@@ -364,42 +396,41 @@ function ImageEditor() {
                         document.getElementsByName('fontSize')[0].value = text.fontSize;
                         document.getElementsByName('fontColor')[0].value = text.fontColor;
                         document.getElementsByName('fontFamily')[0].value = text.fontFamily;
-                        // document.getElementsByName('backgroundColor')[0].value = text.backgroundColor;
+                        document.getElementsByName('backgroundColor')[0].value = text.backgroundColor;
                     }
                     return (
-                        <Text key={text.id} id={text.id} text={text.text} x={text.x} y={text.y}
-                              fontSize={text.fontSize}
-                              fill={text.fontColor}
-                              fontFamily={text.fontFamily}
-                              background={text.backgroundColor}
-                              draggable
-                              onMouseDown={(e) => {
-                                  updateFormatElement();
-                              }}
-                              onDblClick={(e) => {
-                                  const newTextContent = window.prompt('Enter new text', text.text);
-                                  if (newTextContent) {
-                                      updateTextContent(text.id, newTextContent);
-                                  }
-                              }}
-                              onDragEnd={(e) => {
-                                  const id = e.target.id();
-                                  const newTexts = texts.map((text) => {
-                                      if (text.id === id) {
-                                          return {...text, x: e.target.x(), y: e.target.y()};
-                                      } else {
-                                          return text;
-                                      }
-                                  });
-                                  setTexts(newTexts);
-                              }}/>
+                        <Label key={text.id} id={text.id} x={text.x} y={text.y}
+                            draggable
+                            onMouseDown={(e) => {
+                                updateFormatElement();
+                            }}
+                            onDblClick={(e) => {
+                                const newTextContent = window.prompt('Enter new text', text.text);
+                                if (newTextContent) {
+                                    updateTextContent(text.id, newTextContent);
+                                }
+                            }}
+                            onDragEnd={(e) => {
+                                const id = e.target.id();
+                                const newTexts = texts.map((text) => {
+                                    if (text.id === id) {
+                                        return {...text, x: e.target.x(), y: e.target.y()};
+                                    } else {
+                                        return text;
+                                    }
+                                });
+                                setTexts(newTexts);
+                            }}>
+                            <Tag fill={text.backgroundColor}/>
+                            <Text text={text.text} fontSize={text.fontSize} fill={text.fontColor} fontFamily={text.fontFamily}/>
+                        </Label>
                     );
                 })}
             </Layer>
         )
     };
 
-    const handlePublish = async () => {
+    const handlePublish = async (draft=false) => {
         if (stageRef.current) {
             const url = stageRef.current.toDataURL();
             fetch(url)
@@ -413,7 +444,7 @@ function ImageEditor() {
                     formData.append('description', 'your_description_here');
                     // formData.append('author', 'TEST-AUTHOR');
                     formData.append('private', false);
-                    formData.append('draft', false);
+                    formData.append('draft', draft);
                     formData.append('date', date);
                     formData.append('vote', JSON.stringify([]));
                     formData.append('comment', JSON.stringify([]));
@@ -445,7 +476,7 @@ function ImageEditor() {
                 <div className="meme-editor-container">
                     <Fragment>
                         <Button variant="primary" onClick={() => setShow(true)}>Insert Image</Button>
-                        <Button>Save Draft</Button>
+                        <Button onClick={() => handlePublish(true)}>Save Draft</Button>
                         <Button onClick={handlePublish}>Publish</Button>
                         <Button onClick={handleExport}>Download</Button>
                     </Fragment>
@@ -474,25 +505,28 @@ function ImageEditor() {
                                 <option value="Courier New">Courier New</option>
                                 <option value="Georgia">Georgia</option>
                             </Form.Select>
-                            {/*<input type="color" name="backgroundColor" title="Choose your color"/>*/}
+                            <input type="color" name="backgroundColor" title="Choose your color"
+                                   onChange={(event) => updateBackgroundColor(selectedTextId, event.target.value)}/>
 
                         </form>
 
                     </Col>
                     <Col sm={9}>
-                        <ResizableBox
-                            className="custom-box box"
-                            width={stageSize.width}
-                            height={stageSize.height}
-                            handle={<span className="custom-handle custom-handle-se"/>}
-                            handleSize={[12, 12]}
-                            onResize={(event, data) => {
-                                setStageSize({width: data.size.width, height: data.size.height});
-                            }}>
-                            <Stage width={stageSize.width} height={stageSize.height} ref={stageRef}>
-                                <MemeCanvas/>
-                            </Stage>
-                        </ResizableBox>
+                        <div className="canvas-panel">
+                            <ResizableBox
+                                className="custom-box box"
+                                width={stageSize.width}
+                                height={stageSize.height}
+                                handle={<span className="custom-handle custom-handle-se"/>}
+                                handleSize={[12, 12]}
+                                onResize={(event, data) => {
+                                    setStageSize({width: data.size.width, height: data.size.height});
+                                }}>
+                                <Stage width={stageSize.width} height={stageSize.height} ref={stageRef}>
+                                    <MemeCanvas/>
+                                </Stage>
+                            </ResizableBox>
+                        </div>
                     </Col>
                 </Row>
             </Container>
@@ -508,7 +542,8 @@ function ImageEditor() {
                 </Modal.Header>
                 <Modal.Body>
                     <div className="template_popup_content">
-                        <Tabs defaultActiveKey="default" id="uncontrolled-tab-example" className="mb-3" onSelect={key => setActiveTab(key)}>
+                        <Tabs defaultActiveKey="default" id="uncontrolled-tab-example" className="mb-3"
+                              onSelect={key => setActiveTab(key)}>
                             <Tab eventKey="default" title="From Template">
                                 <TemplateMasonry/>
                             </Tab>
@@ -519,6 +554,7 @@ function ImageEditor() {
                                 <Form onSubmit={event => {
                                     event.preventDefault();
                                     const url = 'https://corsproxy.io/?' + encodeURIComponent(event.target.elements[0].value);
+                                    setToRenderImage(true);
                                     setImageSrc(url);
                                 }}>
                                     <Form.Group className="mb-3" controlId="formBasicEmail">

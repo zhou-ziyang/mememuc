@@ -42,7 +42,7 @@ function NavItems() {
                 <Nav>
                     <NavDropdown title={props.username} id="collasible-nav-dropdown">
                         <NavDropdown.Item as={Link} to="/my_memes">My Memes</NavDropdown.Item>
-                        <NavDropdown.Item as={Link} to="">Drafts</NavDropdown.Item>
+                        <NavDropdown.Item as={Link} to="drafts">Drafts</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item as={Link} onClick={handleLogout}>Sign out</NavDropdown.Item>
                     </NavDropdown>
