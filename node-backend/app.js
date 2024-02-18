@@ -41,17 +41,6 @@ app.use(function (req, res, next) {
     next();
 });
 
-// app.use((req, res, next) => {
-//     // If the path starts with /images/templates, skip the next middleware
-//     console.log("PATH: " + req.path)
-//     if (req.path.startsWith('/images/templates')) {
-//         console.log("Skipping authentication for image request.")
-//         return next();
-//     }
-//     // Otherwise, proceed to the next middleware (authentication)
-//     next();
-// });
-
 // the login middleware. Requires BasicAuth authentication
 app.use((req, res, next) => {
     const users = db.get('users');
@@ -81,7 +70,6 @@ app.use((req, res, next) => {
     })
 })
 
-
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -107,14 +95,5 @@ app.use(function (err, req, res, next) {
     res.status(err.status || 500);
     res.render('error');
 });
-
-// const upload = multer({ dest: 'uploads/' });
-// app.post('upload', upload.single('file'), (req, res) => {
-//     if (req.file) {
-//         res.status(200).send('File uploaded successfully.');
-//     } else {
-//         res.status(400).send('No file uploaded.');
-//     }
-// });
 
 module.exports = app;

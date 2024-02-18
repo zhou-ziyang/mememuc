@@ -295,76 +295,76 @@ function ImageEditor() {
     // Use the 'useHotkeys' hook in your component to listen for the 'Delete' key press
     useHotkeys('backspace', deleteSelectedImage);
 
-    const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
-        const memeImageRef = React.useRef();
-        const trRef = React.useRef();
+    const MemeCanvas = () => {
+        const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
+            const memeImageRef = React.useRef();
+            const trRef = React.useRef();
 
-        console.log(status);
+            console.log(status);
 
-        React.useEffect(() => {
-            if (isSelected) {
-                // we need to attach transformer manually
-                trRef.current.nodes([memeImageRef.current]);
-                trRef.current.getLayer().batchDraw();
-            }
-        }, [isSelected]);
+            React.useEffect(() => {
+                if (isSelected) {
+                    // we need to attach transformer manually
+                    trRef.current.nodes([memeImageRef.current]);
+                    trRef.current.getLayer().batchDraw();
+                }
+            }, [isSelected]);
 
-        return (
-            <React.Fragment>
-                <Image
-                    onClick={onSelect}
-                    onTap={onSelect}
-                    ref={memeImageRef}
-                    {...shapeProps}
-                    draggable
-                    onDragEnd={(e) => {
-                        onChange({
-                            ...shapeProps,
-                            x: e.target.x(),
-                            y: e.target.y(),
-                        });
-                    }}
-                    onTransformEnd={(e) => {
-                        // transformer is changing scale of the node
-                        // and NOT its width or height
-                        // but in the store we have only width and height
-                        // to match the data better we will reset scale on transform end
-                        const node = memeImageRef.current;
-                        const scaleX = node.scaleX();
-                        const scaleY = node.scaleY();
+            return (
+                <React.Fragment>
+                    <Image
+                        onClick={onSelect}
+                        onTap={onSelect}
+                        ref={memeImageRef}
+                        {...shapeProps}
+                        draggable
+                        onDragEnd={(e) => {
+                            onChange({
+                                ...shapeProps,
+                                x: e.target.x(),
+                                y: e.target.y(),
+                            });
+                        }}
+                        onTransformEnd={(e) => {
+                            // transformer is changing scale of the node
+                            // and NOT its width or height
+                            // but in the store we have only width and height
+                            // to match the data better we will reset scale on transform end
+                            const node = memeImageRef.current;
+                            const scaleX = node.scaleX();
+                            const scaleY = node.scaleY();
 
-                        // we will reset it back
-                        node.scaleX(1);
-                        node.scaleY(1);
-                        onChange({
-                            ...shapeProps,
-                            x: node.x(),
-                            y: node.y(),
-                            // set minimal value
-                            width: Math.max(5, node.width() * scaleX),
-                            height: Math.max(node.height() * scaleY),
-                            rotation: node.rotation(),
-                        });
-                    }}
-                />
-                {isSelected && (
-                    <Transformer
-                        ref={trRef}
-                        flipEnabled={false}
-                        boundBoxFunc={(oldBox, newBox) => {
-                            // limit resize
-                            if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
-                                return oldBox;
-                            }
-                            return newBox;
+                            // we will reset it back
+                            node.scaleX(1);
+                            node.scaleY(1);
+                            onChange({
+                                ...shapeProps,
+                                x: node.x(),
+                                y: node.y(),
+                                // set minimal value
+                                width: Math.max(5, node.width() * scaleX),
+                                height: Math.max(node.height() * scaleY),
+                                rotation: node.rotation(),
+                            });
                         }}
                     />
-                )}
-            </React.Fragment>
-        );
-    };
+                    {isSelected && (
+                        <Transformer
+                            ref={trRef}
+                            flipEnabled={false}
+                            boundBoxFunc={(oldBox, newBox) => {
+                                // limit resize
+                                if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
+                                    return oldBox;
+                                }
+                                return newBox;
+                            }}
+                        />
+                    )}
+                </React.Fragment>
+            );
+        };
 
-    const MemeCanvas = () => {
         return (
             <Layer>
                 <Rect
@@ -430,8 +430,10 @@ function ImageEditor() {
         )
     };
 
-    const handlePublish = async (draft=false) => {
+    const handlePublish = async (draft) => {
+        console.log(draft);
         if (stageRef.current) {
+            console.log(draft);
             const url = stageRef.current.toDataURL();
             fetch(url)
                 .then(res => res.blob())
@@ -477,7 +479,7 @@ function ImageEditor() {
                     <Fragment>
                         <Button variant="primary" onClick={() => setShow(true)}>Insert Image</Button>
                         <Button onClick={() => handlePublish(true)}>Save Draft</Button>
-                        <Button onClick={handlePublish}>Publish</Button>
+                        <Button onClick={() => handlePublish(false)}>Publish</Button>
                         <Button onClick={handleExport}>Download</Button>
                     </Fragment>
                 </div>

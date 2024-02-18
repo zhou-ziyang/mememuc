@@ -3,8 +3,6 @@ const fs = require("fs");
 const path = require("path");
 const router = express.Router();
 
-// router.use(cors());
-
 /* GET users listing. */
 // router.get('/', function (req, res, next) {
 //     res.header("Access-Control-Allow-Origin", "*");
@@ -17,12 +15,12 @@ const router = express.Router();
 //     })
 // });
 
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
     const db = req.db;
     const memes = db.get('templates');
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    memes.find({},{ projection: {private: 0, draft: 0} }) // return all user properties, except the basic auth token
+    memes.find({}, {projection: {private: 0, draft: 0}}) // return all user properties, except the basic auth token
         .then((docs) => res.json(docs))
         .catch((e) => res.status(500).send())
 });

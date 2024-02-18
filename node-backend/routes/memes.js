@@ -18,7 +18,7 @@ router.get('/', function (req, res, next) {
 router.post('/vote_up', function (req, res, next) {
     const db = req.db;
     const votes = db.get('votes');
-    votes.findOneAndUpdate({mid: req.body.mid, uid: req.id}, { $set: {type: 1}}, { upsert: true })
+    votes.findOneAndUpdate({mid: req.body.mid, uid: req.id}, {$set: {type: 1}}, {upsert: true})
         .then((doc) => res.json(doc))
         .catch((e) => res.status(500).send())
 });
@@ -26,7 +26,7 @@ router.post('/vote_up', function (req, res, next) {
 router.post('/vote_down', function (req, res, next) {
     const db = req.db;
     const votes = db.get('votes');
-    votes.findOneAndUpdate({mid: req.body.mid, uid: req.id}, { $set: {type: 0}}, { upsert: true })
+    votes.findOneAndUpdate({mid: req.body.mid, uid: req.id}, {$set: {type: 0}}, {upsert: true})
         .then((doc) => res.json(doc))
         .catch((e) => res.status(500).send())
 });

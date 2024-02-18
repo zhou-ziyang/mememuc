@@ -6,7 +6,7 @@ router.get('/', function (req, res, next) {
     const db = req.db;
     const memes = db.get('memes');
     memes.find({author: req.id, draft: false}) // return all user properties, except the basic auth token
-    // memes.find({author: req.query.id}) // return all user properties, except the basic auth token
+        // memes.find({author: req.query.id}) // return all user properties, except the basic auth token
         .then((docs) => {
             res.json(docs);
             console.log(docs)
