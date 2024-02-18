@@ -23,6 +23,143 @@ function UniqueId() {
     return count_element.toString();
 }
 
+const MemeCanvas = (props) => {
+    const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
+        const memeImageRef = React.useRef();
+        const trRef = React.useRef();
+
+        // console.log(status);
+
+        React.useEffect(() => {
+            if (isSelected) {
+                // we need to attach transformer manually
+                trRef.current.nodes([memeImageRef.current]);
+                trRef.current.getLayer().batchDraw();
+            }
+        }, [isSelected]);
+
+        return (
+            <React.Fragment>
+                <Image
+                    onClick={onSelect}
+                    onTap={onSelect}
+                    ref={memeImageRef}
+                    {...shapeProps}
+                    draggable
+                    onDragEnd={(e) => {
+                        onChange({
+                            ...shapeProps,
+                            x: e.target.x(),
+                            y: e.target.y(),
+                        });
+                    }}
+                    onTransformEnd={(e) => {
+                        // transformer is changing scale of the node
+                        // and NOT its width or height
+                        // but in the store we have only width and height
+                        // to match the data better we will reset scale on transform end
+                        const node = memeImageRef.current;
+                        const scaleX = node.scaleX();
+                        const scaleY = node.scaleY();
+
+                        // we will reset it back
+                        node.scaleX(1);
+                        node.scaleY(1);
+                        onChange({
+                            ...shapeProps,
+                            x: node.x(),
+                            y: node.y(),
+                            // set minimal value
+                            width: Math.max(5, node.width() * scaleX),
+                            height: Math.max(node.height() * scaleY),
+                            rotation: node.rotation(),
+                        });
+                    }}
+                />
+                {isSelected && (
+                    <Transformer
+                        ref={trRef}
+                        flipEnabled={false}
+                        boundBoxFunc={(oldBox, newBox) => {
+                            // limit resize
+                            if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
+                                return oldBox;
+                            }
+                            return newBox;
+                        }}
+                    />
+                )}
+            </React.Fragment>
+        );
+    };
+
+    return (
+        <Layer>
+            <Rect
+                fill={"#ffffff"}
+                width={props.stageSize.width}
+                height={props.stageSize.height}
+                onClick={() => {
+                    props.selectShape(null);
+                }}
+            />
+            {props.images.map((image, i) => (
+                <MemeImage
+                    key={image.id}
+                    shapeProps={image}
+                    isSelected={image.id === props.selectedId}
+                    onSelect={() => {
+                        props.selectShape(image.id);
+                    }}
+                    onChange={(newAttrs) => {
+                        const imgs = props.images.slice();
+                        imgs[i] = newAttrs;
+                        props.setImages(imgs);
+                    }}
+                />
+            ))}
+            {props.texts.map((text) => {
+                const updateFormatElement = () => {
+                    props.selectText(text.id);
+                    document.getElementsByName('fontSize')[0].value = text.fontSize;
+                    document.getElementsByName('fontColor')[0].value = text.fontColor;
+                    document.getElementsByName('fontFamily')[0].value = text.fontFamily;
+                    document.getElementsByName('backgroundColor')[0].value = text.backgroundColor === "none" ? "#ffffff" : text.backgroundColor;
+                }
+                return (
+                    <Label key={text.id} id={text.id} x={text.x} y={text.y}
+                           draggable
+                           onMouseDown={(e) => {
+                               updateFormatElement();
+                           }}
+                           onDblClick={(e) => {
+                               const newTextContent = window.prompt('Enter new text', text.text);
+                               if (newTextContent) {
+                                   props.updateTextContent(text.id, newTextContent);
+                               }
+                           }}
+                           onDragEnd={(e) => {
+                               const id = e.target.id();
+                               const newTexts = props.texts.map((text) => {
+                                   if (text.id === id) {
+                                       return {...text, x: e.target.x(), y: e.target.y()};
+                                   } else {
+                                       return text;
+                                   }
+                               });
+                               props.setTexts(newTexts);
+                           }}>
+                        <Tag fill={(text.backgroundColor === "none") ? "#ffffff" : text.backgroundColor}
+                             opacity={(text.backgroundColor === "none") ? 0 : 1}/>
+                        <Text text={text.text} fontSize={text.fontSize} fill={text.fontColor}
+                              fontFamily={text.fontFamily}/>
+                    </Label>
+                );
+            })}
+        </Layer>
+    )
+};
+
 function ImageEditor() {
     function MemeCard(props) {
         return (
@@ -57,6 +194,30 @@ function ImageEditor() {
                     {state.map((template, index) => (
                         <div key={index}>
                             <MemeCard file={"http://localhost:3001/images/templates/" + template.file}/>
+                        </div>
+                    ))}
+                </Masonry>
+            );
+        }
+    }
+
+    function ImgflipMasonry() {
+        const [state, setState] = React.useState(null);
+        useEffect(() => {
+            if (state === null) {
+                fetch("https://api.imgflip.com/get_memes")
+                    .then(response => response.json())
+                    .then(data => setState(data.data.memes));
+            }
+        }, [state]);
+        if (state === null) {
+            return <div>Loading...</div>;
+        } else {
+            return (
+                <Masonry columns={5} spacing={2}>
+                    {state.map((template, index) => (
+                        <div key={index}>
+                            <MemeCard file={template.url}/>
                         </div>
                     ))}
                 </Masonry>
@@ -190,7 +351,7 @@ function ImageEditor() {
             fontSize: 30,
             fontColor: '#000000',
             fontFamily: "Arial",
-            backgroundColor: 'transparent'
+            backgroundColor: 'none'
         }]);
     }
 
@@ -264,7 +425,7 @@ function ImageEditor() {
         setTexts(newTexts);
     }
 
-    const [selectedTextId, setSelectedTextId] = useState('');
+    const [selectedTextId, selectText] = useState('');
     const [stageSize, setStageSize] = useState({width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT});
 
     const stageRef = React.useRef(null);
@@ -282,153 +443,18 @@ function ImageEditor() {
         }
     }, [stageRef]);
 
-    const [selectedId, selectShape] = useState(null);
+    const [selectedShapeId, selectShape] = useState(null);
 
     // This function will remove the selected image
     const deleteSelectedImage = () => {
-        if (selectedId) {
-            setImages(prevImages => prevImages.filter(image => image.id !== selectedId));
+        if (selectedShapeId) {
+            setImages(prevImages => prevImages.filter(image => image.id !== selectedShapeId));
             selectShape(null);  // deselect the image
         }
     };
 
     // Use the 'useHotkeys' hook in your component to listen for the 'Delete' key press
     useHotkeys('backspace', deleteSelectedImage);
-
-    const MemeCanvas = () => {
-        const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
-            const memeImageRef = React.useRef();
-            const trRef = React.useRef();
-
-            console.log(status);
-
-            React.useEffect(() => {
-                if (isSelected) {
-                    // we need to attach transformer manually
-                    trRef.current.nodes([memeImageRef.current]);
-                    trRef.current.getLayer().batchDraw();
-                }
-            }, [isSelected]);
-
-            return (
-                <React.Fragment>
-                    <Image
-                        onClick={onSelect}
-                        onTap={onSelect}
-                        ref={memeImageRef}
-                        {...shapeProps}
-                        draggable
-                        onDragEnd={(e) => {
-                            onChange({
-                                ...shapeProps,
-                                x: e.target.x(),
-                                y: e.target.y(),
-                            });
-                        }}
-                        onTransformEnd={(e) => {
-                            // transformer is changing scale of the node
-                            // and NOT its width or height
-                            // but in the store we have only width and height
-                            // to match the data better we will reset scale on transform end
-                            const node = memeImageRef.current;
-                            const scaleX = node.scaleX();
-                            const scaleY = node.scaleY();
-
-                            // we will reset it back
-                            node.scaleX(1);
-                            node.scaleY(1);
-                            onChange({
-                                ...shapeProps,
-                                x: node.x(),
-                                y: node.y(),
-                                // set minimal value
-                                width: Math.max(5, node.width() * scaleX),
-                                height: Math.max(node.height() * scaleY),
-                                rotation: node.rotation(),
-                            });
-                        }}
-                    />
-                    {isSelected && (
-                        <Transformer
-                            ref={trRef}
-                            flipEnabled={false}
-                            boundBoxFunc={(oldBox, newBox) => {
-                                // limit resize
-                                if (Math.abs(newBox.width) < 5 || Math.abs(newBox.height) < 5) {
-                                    return oldBox;
-                                }
-                                return newBox;
-                            }}
-                        />
-                    )}
-                </React.Fragment>
-            );
-        };
-
-        return (
-            <Layer>
-                <Rect
-                    fill={"#ffffff"}
-                    width={stageSize.width}
-                    height={stageSize.height}
-                    onClick={() => {
-                        selectShape(null);
-                    }}
-                />
-                {images.map((image, i) => (
-                    <MemeImage
-                        key={image.id}
-                        shapeProps={image}
-                        isSelected={image.id === selectedId}
-                        onSelect={() => {
-                            selectShape(image.id);
-                        }}
-                        onChange={(newAttrs) => {
-                            const imgs = images.slice();
-                            imgs[i] = newAttrs;
-                            setImages(imgs);
-                        }}
-                    />
-                ))}
-                {texts.map((text) => {
-                    const updateFormatElement = () => {
-                        setSelectedTextId(text.id);
-                        document.getElementsByName('fontSize')[0].value = text.fontSize;
-                        document.getElementsByName('fontColor')[0].value = text.fontColor;
-                        document.getElementsByName('fontFamily')[0].value = text.fontFamily;
-                        document.getElementsByName('backgroundColor')[0].value = text.backgroundColor;
-                    }
-                    return (
-                        <Label key={text.id} id={text.id} x={text.x} y={text.y}
-                            draggable
-                            onMouseDown={(e) => {
-                                updateFormatElement();
-                            }}
-                            onDblClick={(e) => {
-                                const newTextContent = window.prompt('Enter new text', text.text);
-                                if (newTextContent) {
-                                    updateTextContent(text.id, newTextContent);
-                                }
-                            }}
-                            onDragEnd={(e) => {
-                                const id = e.target.id();
-                                const newTexts = texts.map((text) => {
-                                    if (text.id === id) {
-                                        return {...text, x: e.target.x(), y: e.target.y()};
-                                    } else {
-                                        return text;
-                                    }
-                                });
-                                setTexts(newTexts);
-                            }}>
-                            <Tag fill={text.backgroundColor}/>
-                            <Text text={text.text} fontSize={text.fontSize} fill={text.fontColor} fontFamily={text.fontFamily}/>
-                        </Label>
-                    );
-                })}
-            </Layer>
-        )
-    };
 
     const handlePublish = async (draft) => {
         console.log(draft);
@@ -509,7 +535,7 @@ function ImageEditor() {
                             </Form.Select>
                             <input type="color" name="backgroundColor" title="Choose your color"
                                    onChange={(event) => updateBackgroundColor(selectedTextId, event.target.value)}/>
-
+                            <Button onClick={() => updateBackgroundColor(selectedTextId, "none")}>Remove Background</Button>
                         </form>
 
                     </Col>
@@ -525,7 +551,12 @@ function ImageEditor() {
                                     setStageSize({width: data.size.width, height: data.size.height});
                                 }}>
                                 <Stage width={stageSize.width} height={stageSize.height} ref={stageRef}>
-                                    <MemeCanvas/>
+                                    <MemeCanvas stageSize={stageSize}
+                                                images={images} setImages={setImages}
+                                                selectShape={selectShape} selectedId={selectedShapeId}
+                                                texts={texts} setTexts={setTexts}
+                                                selectText={selectText} selectedTextId={selectedTextId}
+                                                updateTextContent={updateTextContent}/>
                                 </Stage>
                             </ResizableBox>
                         </div>
@@ -573,16 +604,6 @@ function ImageEditor() {
                             <Tab eventKey="screenshot" title="Screenshot from URL">
                                 <Form onSubmit={event => {
                                     event.preventDefault();
-                                    // const screenshot_url = "https://api.screenshotone.com/take?\n" +
-                                    //     "\taccess_key=aXb8vQfDtLyFjA\n" +
-                                    //     "\t&url=" + event.target.elements[0].value + "\n" +
-                                    //     "\t&full_page=false\n" +
-                                    //     "\t&viewport_width=1920\n" +
-                                    //     "\t&viewport_height=1280\n" +
-                                    //     "\t&device_scale_factor=1\n" +
-                                    //     "\t&format=jpg\n" +
-                                    //     "\t&image_quality=80"
-                                    // const url = 'https://corsproxy.io/?' + encodeURIComponent(screenshot_url);
 
                                     const encodedParams = new URLSearchParams();
                                     encodedParams.set('html', '<REQUIRED>');
@@ -614,6 +635,9 @@ function ImageEditor() {
                                         Submit
                                     </Button>
                                 </Form>
+                            </Tab>
+                            <Tab eventKey="imgflip" title="From Imgflip">
+                                <ImgflipMasonry/>
                             </Tab>
                         </Tabs>
                     </div>

@@ -21,7 +21,13 @@ router.get('/', function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     memes.find({}, {projection: {private: 0, draft: 0}}) // return all user properties, except the basic auth token
-        .then((docs) => res.json(docs))
+        .then((docs) => {
+            const modifiedDocs = docs.map(doc => ({
+                ...doc,
+                url: `http://localhost:3001/images/templates/${doc.file}`
+            }));
+            res.json(modifiedDocs)
+        })
         .catch((e) => res.status(500).send())
 });
 
