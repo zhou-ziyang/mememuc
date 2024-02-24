@@ -75,17 +75,39 @@ function APIs() {
                             />
                         </Form.Group>
                             <Button variant="success" type="submit">Log In</Button>
-                            {/*<GoogleOAuthProvider clientId="858594356770-2ibbo40qjm34kfkd46tnj62i2ed2f68f.apps.googleusercontent.com">*/}
-                            {/*    <GoogleLogin*/}
-                            {/*        onSuccess={credentialResponse => {*/}
-                            {/*            console.log(credentialResponse);*/}
-                            {/*        }}*/}
-                            {/*        onError={() => {*/}
-                            {/*            console.log('Login Failed');*/}
-                            {/*        }}*/}
-                            {/*        ux_mode={"popup"}*/}
-                            {/*    />*/}
-                            {/*</GoogleOAuthProvider>*/}
+                            <GoogleOAuthProvider clientId="858594356770-2ibbo40qjm34kfkd46tnj62i2ed2f68f.apps.googleusercontent.com">
+                                <GoogleLogin
+                                    onSuccess={credentialResponse => {
+                                        console.log(credentialResponse);
+
+                                        // Send POST request to /login endpoint
+                                        fetch('http://localhost:3001/auth', {
+                                            method: 'GET',
+                                            headers: {"Authorization": credentialResponse.clientId},
+                                        })
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.status === 'ok') {
+                                                    // Update state to reflect that user is logged in
+                                                    // setProps(data);
+                                                    localStorage.setItem('loggedin', true);
+                                                    localStorage.setItem('userId', data.userId);
+                                                    localStorage.setItem('username', data.username);
+                                                    localStorage.setItem('basicauthtoken', credentialResponse.clientId);
+
+                                                    window.location.href = '/';
+                                                } else {
+                                                    // Show error message
+                                                    alert(data.message);
+                                                }
+                                            });
+                                    }}
+                                    onError={() => {
+                                        console.log('Login Failed');
+                                    }}
+                                    ux_mode={"popup"}
+                                />
+                            </GoogleOAuthProvider>
                     </Form>
                 </div>
             </div>

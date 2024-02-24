@@ -31,7 +31,7 @@ function App() {
         useEffect(() => {
             setVote(null);
             if (props === null) return;
-            fetch(`http://localhost:3001/memes/${props.file._id}/vote`, {headers: {"Authorization": localStorage.getItem('basicauthtoken')}})
+            fetch(`http://localhost:3001/social/${props.file._id}/check_vote`, {headers: {"Authorization": localStorage.getItem('basicauthtoken')}})
                 .then(response => response.json())
                 .then(data => {
                     if (data) {
@@ -59,7 +59,7 @@ function App() {
 
         // Function to handle voting up
         const handleVote = (type = 1) => {
-            const url = type === 1 ? 'http://localhost:3001/memes/vote_up' : 'http://localhost:3001/memes/vote_down';
+            const url = type === 1 ? 'http://localhost:3001/social/vote_up' : 'http://localhost:3001/social/vote_down';
             fetch(url, {
                 method: 'POST',
                 headers: {

@@ -10,7 +10,6 @@ import useImage from 'use-image';
 import {ResizableBox} from 'react-resizable';
 import Webcam from "react-webcam";
 import {useHotkeys} from 'react-hotkeys-hook';
-import Compressor from 'compressorjs';
 import imageCompression from 'browser-image-compression';
 import {Divider} from "@mui/material";
 
@@ -480,7 +479,8 @@ function ImageEditor() {
                     onChange={handleFileChange}
                     accept=".jpg,.png,.jpeg,.gif"
                 />
-                <Button type="submit" variant="primary" purpose={"template"} onClick={(e) => handleSubmit(e, "template")}>
+                <Button type="submit" variant="primary" purpose={"template"}
+                        onClick={(e) => handleSubmit(e, "template")}>
                     Set as Template
                 </Button>
                 <Button type="submit" variant="primary" purpose={"insert"} onClick={(e) => handleSubmit(e, "insert")}>
@@ -625,10 +625,10 @@ function ImageEditor() {
     // Use the 'useHotkeys' hook in your component to listen for the 'Delete' key press
     useHotkeys('backspace', deleteSelectedImage);
 
-    const handlePublish = async (draft, title, description) => {
-        console.log(draft);
+    const handlePublish = async () => {
+        // console.log(draft);
         if (stageRef.current) {
-            console.log(draft);
+            // console.log(draft);
             const url = stageRef.current.toDataURL();
             fetch(url)
                 .then(res => res.blob())
@@ -640,12 +640,9 @@ function ImageEditor() {
                     formData.append('title', title);
                     formData.append('template', images.find(image => image.isTemplate).image.src);
                     formData.append('description', description);
-                    // formData.append('author', 'TEST-AUTHOR');
                     formData.append('private', false);
-                    formData.append('draft', draft);
+                    // formData.append('draft', draft);
                     formData.append('date', date);
-                    // formData.append('vote', JSON.stringify([]));
-                    // formData.append('comment', JSON.stringify([]));
 
                     try {
                         const response = await fetch('http://localhost:3001/publish', {
@@ -668,6 +665,52 @@ function ImageEditor() {
         }
     };
 
+    const handleDraft = async () => {
+        // console.log("draft");
+        // if (stageRef.current) {
+        //     // console.log(draft);
+        //     const url = stageRef.current.toDataURL();
+        //     // console.log(url)
+        //     fetch(url)
+        //         .then(res => res.blob())
+        //         .then(async blob => {
+        //             const formData = new FormData();
+        //             const date = new Date();
+        //             formData.append('title', title);
+        //             formData.append('template', images.find(image => image.isTemplate).image.src);
+        //             formData.append('description', description);
+        //             formData.append('date', date);
+        //
+        //             // let's convert the images and texts state to string so that it can be saved into database
+        //             const memeState = {images, texts};
+        //             const memeStateSerialized = JSON.stringify(memeState);
+        //             console.log(memeStateSerialized);
+        //
+        //             // Append the serialized meme state to the form data
+        //             formData.append('memeState', memeStateSerialized);
+        //             console.log(formData)
+        //
+        //             try {
+        //                 const response = await fetch('http://localhost:3001/drafts/save', {
+        //                     method: 'POST',
+        //                     body: formData,
+        //                     headers: {"Authorization": localStorage.getItem('basicauthtoken')}
+        //                 });
+        //
+        //                 if (response.ok) {
+        //                     console.error('Draft saved successfully.');
+        //                 } else {
+        //                     throw new Error('Draft saving failed.');
+        //                 }
+        //             } catch (error) {
+        //                 console.error(error);
+        //                 alert('Draft saving failed.');
+        //             }
+        //         });
+        // }
+    };
+
+
     const removeAllNonTemplateImagesAndTexts = () => {
         setImages(prevImages => prevImages.filter(image => image.isTemplate));
         setTexts([]);
@@ -680,10 +723,10 @@ function ImageEditor() {
                 <div className="meme-editor-container">
                     <Fragment>
                         <Button variant="primary" onClick={() => setShow(true)}>Gallery</Button>
-                        <Button onClick={() => handlePublish(true, title, description)}>Save Draft</Button>
-                        <Button onClick={() => handlePublish(false, title, description)}>Publish</Button>
+                        <Button onClick={handleDraft}>Save Draft</Button>
+                        <Button onClick={handlePublish}>Publish</Button>
                         {/*<Form.Group controlId="formFileSize">*/}
-                            <label>File Size (KB)</label>
+                        <label>File Size (KB)</label>
                         <input id={"size-input"} type="number" value={size} onChange={e => setSize(e.target.value)}
                                placeholder="Enter file size in KB"/>
                         {/*</Form.Group>*/}

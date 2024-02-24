@@ -45,9 +45,7 @@ router.post('/publish', publish.single('file'), async (req, res) => {
         author: req.id,
         private: req.body.private === 'true',
         draft: req.body.draft === 'true',
-        date: new Date(req.body.date),
-        vote: [],
-        comment: [],
+        date: new Date(req.body.date)
     };
     console.log(memeDocument);
 
@@ -67,6 +65,7 @@ router.post('/publish', publish.single('file'), async (req, res) => {
     }
 });
 
+
 router.get('/state', function (req, res, next) {
     res.send({userId: req.userId, username: req.username});
 });
@@ -81,6 +80,6 @@ router.get('/auth', async (req, res) => {
     });
 });
 
-router.get('/meme')
+// router.get('/meme')
 
 module.exports = router;

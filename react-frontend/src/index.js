@@ -11,6 +11,7 @@ import Drafts from "./Drafts";
 import APIs from "./APIs";
 import Login from "./Login";
 import Meme from "./Meme";
+// import Stream from "./Stream";
 // import { registerLicense } from '@syncfusion/ej2-base'
 
 // Registering Syncfusion license key
@@ -31,6 +32,7 @@ root.render(
                     <Route path="meme" element={<Meme/>}>
                         <Route path=":id" element={<Meme/>}/>
                     </Route>
+                    {/*<Route path="stream" element={<Stream/>}/>*/}
                 </Route>
             </Routes>
         </BrowserRouter>

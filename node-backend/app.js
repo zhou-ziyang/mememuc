@@ -27,6 +27,8 @@ const draftsRouter = require('./routes/drafts');
 const apisRouter = require('./routes/apis');
 const loginRouter = require('./routes/login');
 const memeRouter = require('./routes/meme');
+// const streamRouter = require('./routes/stream');
+const socialRouter = require('./routes/social');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -78,6 +80,7 @@ app.use((req, res, next) => {
     })
 })
 
+app.use('/social', socialRouter);
 app.use('/login', loginRouter);
 app.use('/my_memes', myMemesRouter);
 app.use('/drafts', draftsRouter);
