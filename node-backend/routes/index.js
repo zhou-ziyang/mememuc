@@ -45,19 +45,20 @@ router.post('/publish', publish.single('file'), async (req, res) => {
         author: req.id,
         private: req.body.private === 'true',
         draft: req.body.draft === 'true',
-        date: new Date(req.body.date)
+        date: new Date(req.body.date),
+        draftState: req.body.draft ? req.body.draftState : null
     };
     console.log(memeDocument);
 
     // Save meme to the database
     try {
-        await memes.insert([memeDocument])
-            .then((docs) => {
-                // docs contains the documents inserted with added **_id** fields
-                // Inserted 3 documents into the document collection
-            }).catch((err) => {
-                // An error happened while inserting
-            });
+        if (req.body._id) {
+            await memes.findOneAndUpdate({_id: req.body._id}, {$set: memeDocument}, {upsert: true})
+                .then((docs) => {}).catch((err) => {});
+        } else {
+            await memes.insert([memeDocument])
+                .then((docs) => {}).catch((err) => {});
+        }
         res.send('ok');
     } catch (err) {
         console.error(err);

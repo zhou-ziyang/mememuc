@@ -127,55 +127,48 @@ router.get('/:id/comments', function (req, res, next) {
         .catch((e) => res.status(500).send())
 });
 
-router.get('/:id/statistics_past_6', function (req, res, next) {
+router.get('/:mid/monthly_statistics_12', function (req, res, next) {
     const db = req.db;
-    const memes = db.get('memes');
     const comments = db.get('comments');
     const votes = db.get('votes');
-    const {id} = req.params;
-    memes.findOne({_id: id})
-        .then((meme) => {
-            const date = meme.date;
-            const months = [];
-            for (let i = 0; i < 6; i++) {
-                const start = new Date(date);
-                start.setMonth(start.getMonth() - i);
-                start.setDate(1);
-                const end = new Date(date);
-                end.setMonth(end.getMonth() - i + 1);
-                end.setDate(0);
-                months.push({start: start, end: end})
-            }
-            const promises = months.map((month) => {
-                return Promise.all([
-                    comments.count({mid: id, date: {$gte: month.start, $lte: month.end}}),
-                    votes.count({mid: id, date: {$gte: month.start, $lte: month.end}, type: 1}),
-                    votes.count({mid: id, date: {$gte: month.start, $lte: month.end}, type: 0})
-                ])
-            });
-            return Promise.all(promises)
-        })
+    const {mid} = req.params;
+
+    const date = new Date();
+    const months = [];
+    for (let i = 0; i < 12; i++) {
+        const start = new Date(date.getFullYear(), date.getMonth() - i, 1);
+        const end = new Date(date.getFullYear(), date.getMonth() - i + 1, 0);
+        months.push({start: start, end: end});
+    }
+    // console.log(months);
+    const promises = months.map((month) => {
+        console.log(month);
+        return Promise.all([
+            comments.count({mid: mid, date: {$gte: month.start, $lte: month.end}}),
+            votes.count({mid: mid, type: 1, date: {$gte: month.start, $lte: month.end}}),
+            votes.count({mid: mid, type: 0, date: {$gte: month.start, $lte: month.end}}),
+            month
+        ])
+    });
+
+    Promise.all(promises)
         .then((stats) => {
-            let formattedStats = {
-                "months": [],
-                "comments": [],
-                "likes": [],
-                "dislikes": []
-            };
-            stats.forEach((stat, i) => {
-                let dateObj = new Date();
-                dateObj.setMonth(dateObj.getMonth() - i);
-                let month = dateObj.getMonth() + 1;
-                month = month < 10 ? '0' + month : month;
-                let year = dateObj.getFullYear();
-                formattedStats.months.push(`${year}/${month}`);
-                formattedStats.comments.push(stat[0]);
-                formattedStats.likes.push(stat[1]);
-                formattedStats.dislikes.push(stat[2]);
+            let months = [], commentsCounts = [], likesCounts = [], dislikesCounts = [];
+            stats.reverse().forEach((item, index) => {
+                commentsCounts.push(item[0]);
+                likesCounts.push(item[1]);
+                dislikesCounts.push(item[2]);
+                months.push(`${item[3].start.toLocaleDateString('en-US', {year: "numeric"})}/${item[3].start.toLocaleDateString('en-US', {month: "numeric"})}`);
             });
-            res.json(formattedStats)
+
+            res.json({
+                "months": months,
+                "comments": commentsCounts,
+                "likes": likesCounts,
+                "dislikes": dislikesCounts
+            });
         })
-        .catch((e) => res.status(500).send())
+        .catch((e) => res.status(500).send());
 });
 
 module.exports = router;

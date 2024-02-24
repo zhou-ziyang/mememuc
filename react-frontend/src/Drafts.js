@@ -1,13 +1,16 @@
 import {Container} from "react-bootstrap";
 import React, {useEffect} from "react";
 import {Masonry} from "@mui/lab";
+import {Link} from "react-router-dom";
 
 
 function MemeCard(props) {
     return (
         <div className="card">
+            <Link to={`http://localhost:3000/add_meme?continue=${props.data._id}`}>
             <img className="card-img-top" src={"http://localhost:3001/" + props.data.file.slice(7)}
                  alt={props.data.title}/>
+                            </Link>
             <div className="card-body">
                 <h6 className="card-title">{props.data.title}</h6>
             </div>

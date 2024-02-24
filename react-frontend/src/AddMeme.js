@@ -12,16 +12,11 @@ import Webcam from "react-webcam";
 import {useHotkeys} from 'react-hotkeys-hook';
 import imageCompression from 'browser-image-compression';
 import {Divider} from "@mui/material";
-
+import {useLocation} from "react-router-dom";
+import { v4 as uuidv4 } from 'uuid';
 
 const DEFAULT_WIDTH = 512;
 const DEFAULT_HEIGHT = 512;
-let count_element = 0;
-
-function UniqueId() {
-    count_element += 1
-    return count_element.toString();
-}
 
 const MemeCanvas = (props) => {
     const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
@@ -159,6 +154,11 @@ const MemeCanvas = (props) => {
 };
 
 function ImageEditor() {
+    let location = useLocation();
+    // const queryParams = new URLSearchParams(location.search);
+    const mid = location.search.split('=')[1];
+    // console.log(location.search.split('=')[1])
+
     const [title, setTitle] = React.useState("Enter Title");
     const [description, setDescription] = React.useState("Enter Description");
 
@@ -177,6 +177,7 @@ function ImageEditor() {
                 {/*<ButtonGroup aria-label="Meme Controls">*/}
                 <Button variant="secondary"
                         onClick={() => {
+                            // setAttributes({x: 0, y: 0});
                             setToRenderTemplate(true);
                             setImageSrc(props.file);
                             setShow(false);
@@ -184,6 +185,7 @@ function ImageEditor() {
                         }>Set as Template</Button>
                 <Button variant="secondary"
                         onClick={() => {
+                            // setAttributes({x: 0, y: 0});
                             setToRenderImage(true);
                             setImageSrc(props.file);
                             setShow(false);
@@ -245,11 +247,16 @@ function ImageEditor() {
         }
     }
 
-    const addImage = (image, x, y, isTemplate = false) => {
+    const addImage = (image, x, y, isTemplate = false, width=null, height=null, rotation=null) => {
+        // console.log(image);
         const aspectRatio = image.naturalWidth / image.naturalHeight;
         const canvasAspectRatio = stageSize.width / stageSize.height;
-        const newWidth = aspectRatio > canvasAspectRatio ? stageSize.width : stageSize.height * aspectRatio;
-        const newHeight = aspectRatio < canvasAspectRatio ? stageSize.height : stageSize.width / aspectRatio;
+        let newWidth = width;
+        if (newWidth === null)
+            newWidth = aspectRatio > canvasAspectRatio ? stageSize.width : stageSize.height * aspectRatio;
+        let newHeight = height;
+        if (newHeight === null)
+            newHeight = aspectRatio < canvasAspectRatio ? stageSize.height : stageSize.width / aspectRatio;
 
         if (isTemplate) {
             // When adding a template, clear out the existing template(s)
@@ -257,13 +264,14 @@ function ImageEditor() {
         }
 
         setImages(prevImages => [...prevImages, {
-            id: UniqueId(),
+            id: crypto.randomUUID(),
             image: image,
             width: newWidth,
             height: newHeight,
             x: x,
             y: y,
-            isTemplate: isTemplate
+            isTemplate: isTemplate,
+            rotation: rotation
         }]);
         // console.log(images);
     }
@@ -291,6 +299,41 @@ function ImageEditor() {
     }, [image, toRenderTemplate]);
 
     const [texts, setTexts] = useState([]);
+
+    const recoverImages = (image) => {
+        const imageObject = document.createElement('img');
+        imageObject.src = image.src;
+        imageObject.crossOrigin = "anonymous";
+        addImage(imageObject, image.x, image.y, image.isTemplate, image.width, image.height, image.rotation);
+    };
+
+    const recoverTexts = (text) => {
+        addTextOnTopOfImage(text.text, text.x, text.y, text.fontSize, text.fontColor, text.fontFamily, text.backgroundColor);
+    };
+
+    const recovered = useRef(false);
+
+    useEffect(() => {
+        // Fetch meme draft by mid
+        if (recovered.current) return;
+        if (mid) {
+            fetch(`http://localhost:3001/meme/data/${mid}`)
+                .then(response => response.json())
+                .then((memeDraft) => {
+                    // To handle cases where draftState isn't stored or empty
+                    if (memeDraft && memeDraft.draftState) {
+                        // draftState is stored as a serialized string, so we need to parse it back into an object
+                        const draftState = JSON.parse(memeDraft.draftState);
+                        draftState.images.map(image => recoverImages(image));
+                        draftState.texts.map(text => recoverTexts(text));
+                        console.log(draftState.texts);
+                        setStageSize(draftState.stageSize);
+                        recovered.current = true;
+                    }
+                });
+        }
+    }, []);
+
     useEffect(() => {
         setImages(images);
         setTexts(texts);
@@ -301,10 +344,13 @@ function ImageEditor() {
     const capture = useCallback(
         (purpose) => {
             const imageSrc = webcamRef.current.getScreenshot();
-            if (purpose === "template")
+            if (purpose === "template") {
+                // setAttributes({x: 0, y: 0, isTemplate: true});
                 setToRenderTemplate(true);
-            else
+            } else {
+                // setAttributes({x: 0, y: 0});
                 setToRenderImage(true);
+            }
             setImageSrc(imageSrc);
             setShow(false);
         },
@@ -491,17 +537,18 @@ function ImageEditor() {
     }
 
 
-    const addTextOnTopOfImage = (textContent, x, y) => {
+    const addTextOnTopOfImage = (textContent, x, y, fontSize=30, fontColor='#000000', fontFamily= "Arial", backgroundColor='none') => {
         setTexts(prevTexts => [...prevTexts, {
-            id: UniqueId(),
+            id: crypto.randomUUID(),
             text: textContent,
             x: x,
             y: y,
-            fontSize: 30,
-            fontColor: '#000000',
-            fontFamily: "Arial",
-            backgroundColor: 'none'
+            fontSize: fontSize,
+            fontColor: fontColor,
+            fontFamily: fontFamily,
+            backgroundColor: backgroundColor
         }]);
+        console.log(texts);
     }
 
     const updateTextContent = (id, newTextContent) => {
@@ -625,7 +672,7 @@ function ImageEditor() {
     // Use the 'useHotkeys' hook in your component to listen for the 'Delete' key press
     useHotkeys('backspace', deleteSelectedImage);
 
-    const handlePublish = async () => {
+    const handlePublish = async (draft) => {
         // console.log(draft);
         if (stageRef.current) {
             // console.log(draft);
@@ -635,14 +682,45 @@ function ImageEditor() {
                 .then(async blob => {
                     const formData = new FormData();
                     const date = new Date();
+                    if (mid) {
+                        formData.append('_id', mid);
+                    }
                     formData.append('file', blob, localStorage.getItem("username") + '-' + date.toISOString().replace(/:/g, '-') + '.png');
                     // Add additional properties to formData
                     formData.append('title', title);
-                    formData.append('template', images.find(image => image.isTemplate).image.src);
+                    try {
+                        formData.append('template', images.find(image => image.isTemplate).image.src);
+                    } catch (e) {
+                        alert('Please add a template image.');
+                        return;
+                    }
                     formData.append('description', description);
                     formData.append('private', false);
-                    // formData.append('draft', draft);
+                    formData.append('draft', draft);
                     formData.append('date', date);
+
+                    if (draft) {
+                        // const draftState = {images, texts};
+                        const draftState = {
+                            images: images.map(image => ({
+                                id: image.id,
+                                src: image.image.src,
+                                width: image.width,
+                                height: image.height,
+                                x: image.x,
+                                y: image.y,
+                                isTemplate: image.isTemplate
+                            })),
+                            texts: texts,
+                            // count_element: count_element,
+                            stageSize: stageSize
+                        };
+                        const draftStateSerialized = JSON.stringify(draftState);
+                        // console.log(draftStateSerialized);
+
+                        // Append the serialized meme state to the form data
+                        formData.append('draftState', draftStateSerialized);
+                    }
 
                     try {
                         const response = await fetch('http://localhost:3001/publish', {
@@ -654,6 +732,7 @@ function ImageEditor() {
                         if (response.ok) {
                             // alert('Meme published successfully.');
                             console.error('Meme published successfully.');
+                            window.location.href = "/";
                         } else {
                             throw new Error('Meme publish failed.');
                         }
@@ -665,50 +744,50 @@ function ImageEditor() {
         }
     };
 
-    const handleDraft = async () => {
-        // console.log("draft");
-        // if (stageRef.current) {
-        //     // console.log(draft);
-        //     const url = stageRef.current.toDataURL();
-        //     // console.log(url)
-        //     fetch(url)
-        //         .then(res => res.blob())
-        //         .then(async blob => {
-        //             const formData = new FormData();
-        //             const date = new Date();
-        //             formData.append('title', title);
-        //             formData.append('template', images.find(image => image.isTemplate).image.src);
-        //             formData.append('description', description);
-        //             formData.append('date', date);
-        //
-        //             // let's convert the images and texts state to string so that it can be saved into database
-        //             const memeState = {images, texts};
-        //             const memeStateSerialized = JSON.stringify(memeState);
-        //             console.log(memeStateSerialized);
-        //
-        //             // Append the serialized meme state to the form data
-        //             formData.append('memeState', memeStateSerialized);
-        //             console.log(formData)
-        //
-        //             try {
-        //                 const response = await fetch('http://localhost:3001/drafts/save', {
-        //                     method: 'POST',
-        //                     body: formData,
-        //                     headers: {"Authorization": localStorage.getItem('basicauthtoken')}
-        //                 });
-        //
-        //                 if (response.ok) {
-        //                     console.error('Draft saved successfully.');
-        //                 } else {
-        //                     throw new Error('Draft saving failed.');
-        //                 }
-        //             } catch (error) {
-        //                 console.error(error);
-        //                 alert('Draft saving failed.');
-        //             }
-        //         });
-        // }
-    };
+    // const handleDraft = async () => {
+    //     console.log("draft");
+    //     if (stageRef.current) {
+    //         // console.log(draft);
+    //         const url = stageRef.current.toDataURL();
+    //         // console.log(url)
+    //         fetch(url)
+    //             .then(res => res.blob())
+    //             .then(async blob => {
+    //                 const formData = new FormData();
+    //                 const date = new Date();
+    //                 formData.append('title', title);
+    //                 formData.append('template', images.find(image => image.isTemplate).image.src);
+    //                 formData.append('description', description);
+    //                 formData.append('date', date);
+    //
+    //                 // let's convert the images and texts state to string so that it can be saved into database
+    //                 const memeState = {images, texts};
+    //                 const memeStateSerialized = JSON.stringify(memeState);
+    //                 console.log(memeStateSerialized);
+    //
+    //                 // Append the serialized meme state to the form data
+    //                 formData.append('memeState', memeStateSerialized);
+    //                 console.log(formData)
+    //
+    //                 try {
+    //                     const response = await fetch('http://localhost:3001/drafts/save', {
+    //                         method: 'POST',
+    //                         body: formData,
+    //                         headers: {"Authorization": localStorage.getItem('basicauthtoken')}
+    //                     });
+    //
+    //                     if (response.ok) {
+    //                         console.error('Draft saved successfully.');
+    //                     } else {
+    //                         throw new Error('Draft saving failed.');
+    //                     }
+    //                 } catch (error) {
+    //                     console.error(error);
+    //                     alert('Draft saving failed.');
+    //                 }
+    //             });
+    //     }
+    // };
 
 
     const removeAllNonTemplateImagesAndTexts = () => {
@@ -723,8 +802,8 @@ function ImageEditor() {
                 <div className="meme-editor-container">
                     <Fragment>
                         <Button variant="primary" onClick={() => setShow(true)}>Gallery</Button>
-                        <Button onClick={handleDraft}>Save Draft</Button>
-                        <Button onClick={handlePublish}>Publish</Button>
+                        <Button onClick={() => handlePublish(true)}>Save Draft</Button>
+                        <Button onClick={() => handlePublish(false)}>Publish</Button>
                         {/*<Form.Group controlId="formFileSize">*/}
                         <label>File Size (KB)</label>
                         <input id={"size-input"} type="number" value={size} onChange={e => setSize(e.target.value)}

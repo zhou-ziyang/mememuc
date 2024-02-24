@@ -30,10 +30,10 @@ function Comments(props) {
     }
 
     const [comments, setComments] = useState([]);
-    const [editing, setEditing] = useState(false);
+    const [toRenderComment, setToRenderComment] = useState(true);
 
     useEffect(() => {
-        if (editing) return;
+        if (!toRenderComment) return;
         fetch(`http://localhost:3001/meme/${props.id}/comments`,
             {headers: {"Authorization": localStorage.getItem('basicauthtoken')}}
         )
@@ -41,20 +41,19 @@ function Comments(props) {
             .then(data => {
                 if (data) {
                     setComments(data);
+                    setToRenderComment(false);
                 }
             });
-    }, [editing]);
+    }, [toRenderComment]);
 
     const [newComment, setNewComment] = useState('');
 
     const handleCommentChange = (event) => {
         setNewComment(event.target.value);
-        setEditing(true);
     };
 
     const handleCommentSubmit = (event) => {
         event.preventDefault();
-
         // Submit new comment to your API
         fetch(`http://localhost:3001/social/comment`, {
             method: 'POST',
@@ -68,23 +67,70 @@ function Comments(props) {
             // Show some success message
             // And clear the form
             setNewComment('');
-            setEditing(false);
+            setToRenderComment(true);
         }).catch((error) => {
             // Show some error message
         });
     };
 
+    function Chart(props) {
+        const [plotData, setPlotData] = useState([]);
+        useEffect(() => {
+            fetch(`http://localhost:3001/meme/${props.id}/monthly_statistics_12`,
+                {headers: {"Authorization": localStorage.getItem('basicauthtoken')}}
+            )
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        setPlotData(data);
+                    }
+                });
+        }, []);
+        return (
+            <Plot
+                data={[
+                    {
+                        x: plotData.months,
+                        y: plotData.comments,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        marker: {color: 'red'},
+                        name: 'Comments'
+                    },
+                    {
+                        x: plotData.months,
+                        y: plotData.likes,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        marker: {color: 'green'},
+                        name: 'Likes'
+                    },
+                    {
+                        x: plotData.months,
+                        y: plotData.dislikes,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        marker: {color: 'blue'},
+                        name: 'Dislikes'
+                    }
+                ]}
+                layout={{width: 700, height: 500, title: 'Statistics'}}
+            />
+        );
+    }
+
     return (
         <div>
+            <Chart id={props.meme._id}/>
             <h2>Leave a Comment:</h2>
-            <Form onSubmit={handleCommentSubmit}>
+            <Form>
                 <FormGroup>
                     <FormControl type="text"
                                  placeholder="Write a comment..."
                                  value={newComment}
                                  onChange={handleCommentChange}/>
                 </FormGroup>
-                <Button variant="primary" type="submit">
+                <Button variant="primary" type="submit" onClick={handleCommentSubmit}>
                     Submit
                 </Button>
             </Form>
@@ -96,57 +142,10 @@ function Comments(props) {
     );
 }
 
-function Chart(props) {
-    const [data, setData] = useState([]);
-    useEffect(() => {
-        fetch(`http://localhost:3001/meme/${props.id}/statistics_past_6`,
-            {headers: {"Authorization": localStorage.getItem('basicauthtoken')}}
-        )
-            .then(response => response.json())
-            .then(data => {
-                if (data) {
-                    setData(data);
-                }
-            });
-    }, []);
-    return (
-        <Plot
-            data={[
-                {
-                    x: data.months,
-                    y: data.comments,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    marker: {color: 'red'},
-                    name: 'Comments'
-                },
-                {
-                    x: data.months,
-                    y: data.likes,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    marker: {color: 'green'},
-                    name: 'Likes'
-                },
-                {
-                    x: data.months,
-                    y: data.dislikes,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    marker: {color: 'blue'},
-                    name: 'Dislikes'
-                }
-            ]}
-            layout={{width: 700, height: 500, title: 'Statistics'}}
-        />
-    );
-}
-
 function MemeModal() {
     const urlParams = useParams();
     let location = useLocation();
     const queryParams = new URLSearchParams(location.search);
-    // console.log(queryParams);
 
     const [meme, setMeme] = useState(null);
     const [memeUrl, setMemeUrl] = useState(null);
@@ -260,7 +259,6 @@ function MemeModal() {
             <Button href={`http://localhost:3000/meme/${nextMemeURL}`}>Next</Button>
             <Button href={`http://localhost:3000/meme/${randomMemeURL}`}>Pick a Random</Button>
             <Divider/>
-            <Chart id={meme._id}/>
             <Comments id={meme._id} username={username} meme={meme}/>
         </Container>
     );
