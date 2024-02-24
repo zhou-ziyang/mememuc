@@ -42,6 +42,13 @@ app.use(function (req, res, next) {
     next();
 });
 
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/meme', memeRouter);
+app.use('/apis', apisRouter);
+app.use('/templates', templatesRouter);
+app.use('/memes', memesRouter);
+app.use('/users', usersRouter);
+
 // the login middleware. Requires BasicAuth authentication
 app.use((req, res, next) => {
     const users = db.get('users');
@@ -71,16 +78,10 @@ app.use((req, res, next) => {
     })
 })
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/templates', templatesRouter);
-app.use('/memes', memesRouter);
+app.use('/login', loginRouter);
 app.use('/my_memes', myMemesRouter);
 app.use('/drafts', draftsRouter);
-app.use('/apis', apisRouter);
-app.use('/login', loginRouter);
-app.use('/meme', memeRouter);
+app.use('/', indexRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

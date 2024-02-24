@@ -27,6 +27,7 @@ function NavItems() {
         localStorage.setItem('loggedin', false);
         localStorage.setItem('userId', '');
         localStorage.setItem('username', '');
+        localStorage.setItem('basicauthtoken', '');
         // window.location.reload();
         window.location.href = '/';
     }

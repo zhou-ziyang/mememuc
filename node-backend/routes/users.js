@@ -10,4 +10,12 @@ router.get('/', function(req, res, next) {
       .catch((e) => res.status(500).send())
 });
 
+router.get('/:id', function(req, res, next) {
+  const db = req.db;
+  const users = db.get('users');
+  users.findOne({_id: req.params.id})
+      .then((docs) => res.json(docs))
+      .catch((e) => res.status(500).send())
+});
+
 module.exports = router;

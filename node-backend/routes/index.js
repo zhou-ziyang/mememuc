@@ -71,7 +71,7 @@ router.get('/state', function (req, res, next) {
     res.send({userId: req.userId, username: req.username});
 });
 
-router.get('/login', async (req, res) => {
+router.get('/auth', async (req, res) => {
     res.send({
         status: 'ok',
         message: 'Logged in successfully',
@@ -79,64 +79,6 @@ router.get('/login', async (req, res) => {
         username: req.username,
         loggedin: true
     });
-});
-
-function fetchImage(url) {
-    const httpModule = url.startsWith('https:') ? https : http;
-
-    return new Promise((resolve, reject) => {
-        httpModule.get(url, (res) => {
-            const data = [];
-
-            res.on('data', (chunk) => {
-                data.push(chunk);
-            });
-
-            res.on('end', () => {
-                resolve(Buffer.concat(data));
-            });
-
-            res.on('error', reject);
-        });
-    });
-}
-
-router.post('/generate-memes', async (req, res) => {
-    const {imageUrl, textSets} = req.body;
-
-    // Fetch the image from the URL
-    const imageBuffer = await fetchImage(imageUrl);
-
-    const {width, height} = await sharp(imageBuffer).metadata();
-
-    const memeUrls = [];
-
-    for (let i = 0; i < textSets.length; i++) {
-        const texts = textSets[i];
-
-        let memeBuffer = imageBuffer;
-
-        for (let j = 0; j < texts.length; j++) {
-            const {text, size, position, color} = texts[j];
-
-            // Use sharp to overlay text onto the image
-            memeBuffer = await sharp(memeBuffer)
-                .composite([{
-                    input: Buffer.from(`<svg width="${width}" height="${height}"><text x="${position.x}" y="${position.y}" fill="${color}" font-size="${size}">${text}</text></svg>`),
-                    top: 0,
-                    left: 0
-                }])
-                .toBuffer();
-        }
-
-        // Save the meme image to a location that can be accessed via a URL
-        const memeUrl = `/images/memes-api/meme-${i}.png`;
-        await sharp(memeBuffer).toFile(`./public${memeUrl}`);
-        const urlOutput = `http://localhost:3001${memeUrl}`;
-        memeUrls.push(urlOutput);
-    }
-
-    res.json({memeUrls});
 });
 
 router.get('/meme')

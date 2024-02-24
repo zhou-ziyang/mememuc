@@ -1,18 +1,18 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AddMeme.css'
 import './Resizable.css'
-import Container from "react-bootstrap/Container";
+// import Container from "react-bootstrap/Container";
 import React, {Fragment, useEffect, useState, useRef, useCallback} from "react";
-import {Form, Button, Col, FormControl, Modal, Row, Tab, Tabs} from "react-bootstrap";
+import {Form, Button, Col, FormControl, Modal, Row, Tab, Tabs, Container} from "react-bootstrap";
 import {Masonry} from "@mui/lab";
-// import {createRoot} from 'react-dom/client';
-import {Image, Layer, Stage, Text, Transformer, Rect, Label, Tag} from 'react-konva';
+import {Image, Layer, Stage, Text, Transformer, Rect, Label, Tag, Line} from 'react-konva';
 import useImage from 'use-image';
 import {ResizableBox} from 'react-resizable';
 import Webcam from "react-webcam";
 import {useHotkeys} from 'react-hotkeys-hook';
 import Compressor from 'compressorjs';
 import imageCompression from 'browser-image-compression';
+import {Divider} from "@mui/material";
 
 
 const DEFAULT_WIDTH = 512;
@@ -21,7 +21,6 @@ let count_element = 0;
 
 function UniqueId() {
     count_element += 1
-    // console.log(count_element)
     return count_element.toString();
 }
 
@@ -29,8 +28,6 @@ const MemeCanvas = (props) => {
     const MemeImage = ({shapeProps, isSelected, onSelect, onChange}) => {
         const memeImageRef = React.useRef();
         const trRef = React.useRef();
-
-        // console.log(status);
 
         React.useEffect(() => {
             if (isSelected) {
@@ -163,25 +160,36 @@ const MemeCanvas = (props) => {
 };
 
 function ImageEditor() {
+    const [title, setTitle] = React.useState("Enter Title");
+    const [description, setDescription] = React.useState("Enter Description");
+
+    const handleTitleChange = (event) => {
+        setTitle(event.target.value);
+    }
+
+    const handleDescriptionChange = (event) => {
+        setDescription(event.target.value);
+    }
+
     function MemeCard(props) {
         return (
             <div className="card">
                 <img className="card-img-top" src={props.file} alt={props.file}/>
                 {/*<ButtonGroup aria-label="Meme Controls">*/}
-                    <Button variant="secondary"
-                            onClick={() => {
-                                setToRenderTemplate(true);
-                                setImageSrc(props.file);
-                                setShow(false);
-                            }
-                            }>Set as Template</Button>
-                    <Button variant="secondary"
-                            onClick={() => {
-                                setToRenderImage(true);
-                                setImageSrc(props.file);
-                                setShow(false);
-                            }
-                            }>Insert</Button>
+                <Button variant="secondary"
+                        onClick={() => {
+                            setToRenderTemplate(true);
+                            setImageSrc(props.file);
+                            setShow(false);
+                        }
+                        }>Set as Template</Button>
+                <Button variant="secondary"
+                        onClick={() => {
+                            setToRenderImage(true);
+                            setImageSrc(props.file);
+                            setShow(false);
+                        }
+                        }>Insert</Button>
                 {/*</ButtonGroup>*/}
             </div>
         )
@@ -189,10 +197,11 @@ function ImageEditor() {
 
     function TemplateMasonry() {
         const [state, setState] = React.useState(null);
+        // console.log(localStorage.getItem('basicauthtoken'));
         useEffect(() => {
             if (state === null) {
                 fetch("http://localhost:3001/templates", {
-                    headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
+                    headers: {"Authorization": localStorage.getItem('basicauthtoken')}
                 })
                     .then(response => response.json())
                     .then(data => setState(data));
@@ -237,7 +246,7 @@ function ImageEditor() {
         }
     }
 
-    const addImage = (image, x, y, isTemplate=false) => {
+    const addImage = (image, x, y, isTemplate = false) => {
         const aspectRatio = image.naturalWidth / image.naturalHeight;
         const canvasAspectRatio = stageSize.width / stageSize.height;
         const newWidth = aspectRatio > canvasAspectRatio ? stageSize.width : stageSize.height * aspectRatio;
@@ -266,11 +275,10 @@ function ImageEditor() {
     const [toRenderImage, setToRenderImage] = useState(false);
     const [toRenderTemplate, setToRenderTemplate] = useState(false);
     const [images, setImages] = useState([]);
-    const [size, setSize] = useState(0);
+    const [size, setSize] = useState(300);
 
     useEffect(() => {
         if (status === 'loaded' && toRenderImage) {
-            // console.log(status)
             addImage(image, 0, 0);
             setToRenderImage(false);
         }
@@ -278,9 +286,7 @@ function ImageEditor() {
 
     useEffect(() => {
         if (status === 'loaded' && toRenderTemplate) {
-            // console.log(status)
             addImage(image, 0, 0, true);
-            // console.log(image);
             setToRenderTemplate(false);
         }
     }, [image, toRenderTemplate]);
@@ -294,9 +300,12 @@ function ImageEditor() {
     const webcamRef = useRef(null);
 
     const capture = useCallback(
-        () => {
+        (purpose) => {
             const imageSrc = webcamRef.current.getScreenshot();
-            setToRenderImage(true);
+            if (purpose === "template")
+                setToRenderTemplate(true);
+            else
+                setToRenderImage(true);
             setImageSrc(imageSrc);
             setShow(false);
         },
@@ -309,8 +318,110 @@ function ImageEditor() {
         return (
             <>
                 {activeTab === 'webcam' && <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg"/>}
-                <Button variant="primary" onClick={capture}>
-                    Capture photo
+                <Button variant="primary" onClick={() => capture("template")}>
+                    Set as Template
+                </Button>
+                <Button variant="primary" onClick={() => capture("insert")}>
+                    Insert
+                </Button>
+            </>
+        );
+    };
+
+    const TemplatePaint = () => {
+        const [tool, setTool] = React.useState("pen");
+        const [lines, setLines] = React.useState([]);
+
+        const isDrawing = React.useRef(false);
+
+        const paintRef = React.useRef(null);
+
+        // id: UniqueId(),
+
+        const handleMouseDown = (e) => {
+            isDrawing.current = true;
+            const pos = e.target.getStage().getPointerPosition();
+            setLines([...lines, {tool, points: [pos.x, pos.y]}]);
+        };
+
+        const handleMouseMove = (e) => {
+            // no drawing - skipping
+            if (!isDrawing.current) {
+                return;
+            }
+            const stage = e.target.getStage();
+            const point = stage.getPointerPosition();
+            let lastLine = lines[lines.length - 1];
+            // add point
+            lastLine.points = lastLine.points.concat([point.x, point.y]);
+
+            // replace last
+            lines.splice(lines.length - 1, 1, lastLine);
+            setLines(lines.concat());
+        };
+
+        const handleMouseUp = () => {
+            isDrawing.current = false;
+        };
+
+        const insertDrawing = useCallback(
+            (purpose) => {
+                const imageSrc = paintRef.current.toDataURL();
+                if (purpose === "template")
+                    setToRenderTemplate(true);
+                else
+                    setToRenderImage(true);
+                setImageSrc(imageSrc);
+                setShow(false);
+            },
+            [paintRef]
+        );
+
+        return (
+            <>
+                <div className={"paint"}>
+                    <Stage
+                        width={window.innerWidth}
+                        height={300}
+                        onMouseDown={handleMouseDown}
+                        onMousemove={handleMouseMove}
+                        onMouseup={handleMouseUp}
+                        ref={paintRef}
+                    >
+                        <Layer>
+                            {/*<Text text="Just start drawing" x={5} y={30} />*/}
+                            {lines.map((line, i) => (
+                                <Line
+                                    key={i}
+                                    points={line.points}
+                                    stroke="#df4b26"
+                                    strokeWidth={5}
+                                    tension={0.5}
+                                    lineCap="round"
+                                    globalCompositeOperation={
+                                        line.tool === "eraser" ? "destination-out" : "source-over"
+                                    }
+                                />
+                            ))}
+                        </Layer>
+                    </Stage>
+                </div>
+
+                <select
+                    // style={{ position: "absolute", top: "5px", left: "5px" }}
+                    value={tool}
+                    onChange={(e) => {
+                        setTool(e.target.value);
+                    }}
+                >
+                    <option value="pen">Pen</option>
+                    <option value="eraser">Eraser</option>
+                </select>
+                <Button variant="primary" onClick={() => insertDrawing("template")}>
+                    Set as Template
+                </Button>
+                <Button variant="primary" onClick={() => insertDrawing("insert")}>
+                    Insert
                 </Button>
             </>
         );
@@ -323,7 +434,7 @@ function ImageEditor() {
             setFile(event.target.files[0]);
         };
 
-        const handleSubmit = async (event) => {
+        const handleSubmit = async (event, purpose) => {
             event.preventDefault();
 
             if (!file) {
@@ -338,15 +449,20 @@ function ImageEditor() {
                 const response = await fetch('http://localhost:3001/upload', {
                     method: 'POST',
                     body: formData,
-                    headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
+                    headers: {"Authorization": localStorage.getItem('basicauthtoken')}
                 });
 
                 if (response.ok) {
                     // alert('File uploaded successfully.');
                     const result = await response.json();
                     const image_src = "http://localhost:3001/" + result.file.path.slice(7)
-                    setToRenderImage(true);
+                    console.log(event.purpose)
+                    if (purpose === "template")
+                        setToRenderTemplate(true);
+                    else
+                        setToRenderImage(true);
                     setImageSrc(image_src);
+                    setShow(false);
                     // console.log(image_src);
                 } else {
                     // throw new Error('File upload failed.');
@@ -358,14 +474,17 @@ function ImageEditor() {
         };
 
         return (
-            <form onSubmit={handleSubmit}>
+            <form>
                 <FormControl
                     type="file"
                     onChange={handleFileChange}
                     accept=".jpg,.png,.jpeg,.gif"
                 />
-                <Button type="submit" variant="primary">
-                    Upload
+                <Button type="submit" variant="primary" purpose={"template"} onClick={(e) => handleSubmit(e, "template")}>
+                    Set as Template
+                </Button>
+                <Button type="submit" variant="primary" purpose={"insert"} onClick={(e) => handleSubmit(e, "insert")}>
+                    Insert
                 </Button>
             </form>
         );
@@ -459,31 +578,14 @@ function ImageEditor() {
     const [stageSize, setStageSize] = useState({width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT});
 
     const stageRef = React.useRef(null);
-    // const [compressedFile, setCompressedFile] = useState(null);
-    // const [finalFile, seFinalFile] = useState(null);
 
     // Extra function for handling download
     const handleExport = React.useCallback(async () => {
-        function reduceFileSize(file) {
-            return new Promise((resolve, reject) => {
-                new Compressor(file, {
-                    quality: 0.4,
-                    success: (compressedResult) => {
-                        resolve(compressedResult);
-                    },
-                    error(err) {
-                        reject(err);
-                    },
-                });
-            });
-        }
-
         if (stageRef.current) {
             let url = stageRef.current.toDataURL();
 
             const response = await fetch(url);
             let file = await response.blob();
-            // setCompressedFile(file);
             const targetSize = parseInt(document.getElementById("size-input").value);
 
             const options = {
@@ -523,7 +625,7 @@ function ImageEditor() {
     // Use the 'useHotkeys' hook in your component to listen for the 'Delete' key press
     useHotkeys('backspace', deleteSelectedImage);
 
-    const handlePublish = async (draft) => {
+    const handlePublish = async (draft, title, description) => {
         console.log(draft);
         if (stageRef.current) {
             console.log(draft);
@@ -533,11 +635,11 @@ function ImageEditor() {
                 .then(async blob => {
                     const formData = new FormData();
                     const date = new Date();
-                    formData.append('file', blob, 'TEST-AUTHOR' + '-' + date.toISOString().replace(/:/g, '-') + '.png');
+                    formData.append('file', blob, localStorage.getItem("username") + '-' + date.toISOString().replace(/:/g, '-') + '.png');
                     // Add additional properties to formData
-                    formData.append('title', 'your_title_here');
+                    formData.append('title', title);
                     formData.append('template', images.find(image => image.isTemplate).image.src);
-                    formData.append('description', 'your_description_here');
+                    formData.append('description', description);
                     // formData.append('author', 'TEST-AUTHOR');
                     formData.append('private', false);
                     formData.append('draft', draft);
@@ -549,7 +651,7 @@ function ImageEditor() {
                         const response = await fetch('http://localhost:3001/publish', {
                             method: 'POST',
                             body: formData,
-                            headers: {"Authorization": "Basic dGVzdDp0ZXN0"}
+                            headers: {"Authorization": localStorage.getItem('basicauthtoken')}
                         });
 
                         if (response.ok) {
@@ -571,22 +673,31 @@ function ImageEditor() {
         setTexts([]);
     }
 
+
     return (
         <>
             <Container>
                 <div className="meme-editor-container">
                     <Fragment>
                         <Button variant="primary" onClick={() => setShow(true)}>Gallery</Button>
-                        <Button onClick={() => handlePublish(true)}>Save Draft</Button>
-                        <Button onClick={() => handlePublish(false)}>Publish</Button>
+                        <Button onClick={() => handlePublish(true, title, description)}>Save Draft</Button>
+                        <Button onClick={() => handlePublish(false, title, description)}>Publish</Button>
+                        {/*<Form.Group controlId="formFileSize">*/}
+                            <label>File Size (KB)</label>
                         <input id={"size-input"} type="number" value={size} onChange={e => setSize(e.target.value)}
                                placeholder="Enter file size in KB"/>
+                        {/*</Form.Group>*/}
                         <Button onClick={handleExport}>Download</Button>
                     </Fragment>
                 </div>
                 <Row>
                     <Col sm={3}>
-                        <Button onClick={removeAllNonTemplateImagesAndTexts}>Clear</Button>
+                        <Form>
+                            <FormControl type="text" placeholder="Enter Title" onChange={handleTitleChange}
+                                         value={title}/>
+                            <FormControl type="text" placeholder="Enter Description" onChange={handleDescriptionChange}
+                                         value={description}/>
+                        </Form>
                         <form onSubmit={event => {
                             event.preventDefault();
                             addTextOnTopOfImage(event.target.elements[0].value, 50, 50);
@@ -595,8 +706,7 @@ function ImageEditor() {
                             <Button type="submit" variant="primary">Add Text</Button>
                         </form>
                         <form>
-                            <FormControl type="text" placeholder="Text ID" value={selectedTextId} readOnly/>
-
+                            {/*<FormControl type="text" placeholder="Text ID" value={selectedTextId} readOnly/>*/}
                             <FormControl type="number" placeholder="Font Size" name={"fontSize"}
                                          onChange={(event) => updateTextSize(selectedTextId, event.target.value)}/>
                             <input type="color" name="fontColor" title="Choose your color"
@@ -611,7 +721,13 @@ function ImageEditor() {
                             </Form.Select>
                             <input type="color" name="backgroundColor" title="Choose your color"
                                    onChange={(event) => updateBackgroundColor(selectedTextId, event.target.value)}/>
-                            <Button onClick={() => updateBackgroundColor(selectedTextId, "none")}>Remove Background</Button>
+                            <Button onClick={() => updateBackgroundColor(selectedTextId, "none")}>Remove
+                                Background</Button>
+
+                            <Divider/>
+
+                            <Button onClick={removeAllNonTemplateImagesAndTexts}>Clear</Button>
+                            <Button onClick={deleteSelectedImage}>Delete Selected</Button>
                         </form>
 
                     </Col>
@@ -663,57 +779,67 @@ function ImageEditor() {
                                 <Form onSubmit={event => {
                                     event.preventDefault();
                                     const url = 'https://corsproxy.io/?' + encodeURIComponent(event.target.elements[0].value);
-                                    setToRenderImage(true);
+                                    if (event.nativeEvent.submitter.name === "url-template")
+                                        setToRenderTemplate(true);
+                                    else
+                                        setToRenderImage(true);
                                     setImageSrc(url);
+                                    setShow(false);
                                 }}>
                                     <Form.Group className="mb-3" controlId="formBasicEmail">
                                         <Form.Control type="text" placeholder="Enter URL"/>
                                     </Form.Group>
-                                    <Button variant="primary" type="submit">
-                                        Submit
+                                    <Button variant="primary" type="submit" name="url-template">
+                                        Set as Template
+                                    </Button>
+                                    <Button variant="primary" type="submit" name="url-insert">
+                                        Insert
                                     </Button>
                                 </Form>
                             </Tab>
                             <Tab eventKey="webcam" title="From Webcam">
                                 <WebcamCapture/>
                             </Tab>
-                            <Tab eventKey="screenshot" title="Screenshot from URL">
-                                <Form onSubmit={event => {
-                                    event.preventDefault();
+                            {/*<Tab eventKey="screenshot" title="Screenshot from URL">*/}
+                            {/*    <Form onSubmit={event => {*/}
+                            {/*        event.preventDefault();*/}
 
-                                    const encodedParams = new URLSearchParams();
-                                    encodedParams.set('html', '<REQUIRED>');
-                                    const url = 'https://api.screenshotone.com/take?access_key=aXb8vQfDtLyFjA&url=https%3A%2F%2Fstripe.com&viewport_width=1920&viewport_height=1280&device_scale_factor=1&image_quality=80&format=jpg&block_ads=true&block_cookie_banners=true&full_page=false&block_trackers=true&block_banners_by_heuristics=false&delay=0&timeout=60';
-                                    fetch(url, {
-                                        method: 'POST',
-                                        headers: {
-                                            'content-type': 'application/x-www-form-urlencoded',
-                                            'X-RapidAPI-Key': 'b1eab662f6msh2cffc30ce352155p118be9jsn41275070431e',
-                                            'X-RapidAPI-Host': 'ApiLeapzakutynskyV1.p.rapidapi.com'
-                                        },
-                                        body: encodedParams
-                                    })
-                                        .then(response => {
-                                            if (!response.ok) {
-                                                throw new Error('Network response was not ok');
-                                            }
-                                            console.log(response);
-                                        })
-                                        .catch(error => {
-                                            console.error('There has been a problem with your fetch operation:', error);
-                                        });
-                                    // setImageSrc(url);
-                                }}>
-                                    <Form.Group className="mb-3" controlId="formBasicEmail">
-                                        <Form.Control type="text" placeholder="Enter URL"/>
-                                    </Form.Group>
-                                    <Button variant="primary" type="submit">
-                                        Submit
-                                    </Button>
-                                </Form>
-                            </Tab>
+                            {/*        const encodedParams = new URLSearchParams();*/}
+                            {/*        encodedParams.set('html', '<REQUIRED>');*/}
+                            {/*        const url = 'https://api.screenshotone.com/take?access_key=aXb8vQfDtLyFjA&url=https%3A%2F%2Fstripe.com&viewport_width=1920&viewport_height=1280&device_scale_factor=1&image_quality=80&format=jpg&block_ads=true&block_cookie_banners=true&full_page=false&block_trackers=true&block_banners_by_heuristics=false&delay=0&timeout=60';*/}
+                            {/*        fetch(url, {*/}
+                            {/*            method: 'POST',*/}
+                            {/*            headers: {*/}
+                            {/*                'content-type': 'application/x-www-form-urlencoded',*/}
+                            {/*                'X-RapidAPI-Key': 'b1eab662f6msh2cffc30ce352155p118be9jsn41275070431e',*/}
+                            {/*                'X-RapidAPI-Host': 'ApiLeapzakutynskyV1.p.rapidapi.com'*/}
+                            {/*            },*/}
+                            {/*            body: encodedParams*/}
+                            {/*        })*/}
+                            {/*            .then(response => {*/}
+                            {/*                if (!response.ok) {*/}
+                            {/*                    throw new Error('Network response was not ok');*/}
+                            {/*                }*/}
+                            {/*                console.log(response);*/}
+                            {/*            })*/}
+                            {/*            .catch(error => {*/}
+                            {/*                console.error('There has been a problem with your fetch operation:', error);*/}
+                            {/*            });*/}
+                            {/*        // setImageSrc(url);*/}
+                            {/*    }}>*/}
+                            {/*        <Form.Group className="mb-3" controlId="formBasicEmail">*/}
+                            {/*            <Form.Control type="text" placeholder="Enter URL"/>*/}
+                            {/*        </Form.Group>*/}
+                            {/*        <Button variant="primary" type="submit">*/}
+                            {/*            Submit*/}
+                            {/*        </Button>*/}
+                            {/*    </Form>*/}
+                            {/*</Tab>*/}
                             <Tab eventKey="imgflip" title="From Imgflip">
                                 <ImgflipMasonry/>
+                            </Tab>
+                            <Tab eventKey="draw" title="Draw">
+                                <TemplatePaint/>
                             </Tab>
                         </Tabs>
                     </div>

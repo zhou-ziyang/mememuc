@@ -6,7 +6,7 @@ import Button from "react-bootstrap/Button";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 function APIs() {
-    const [loginForm, setLoginForm] = useState({username: "", password: ""});
+    const [loginForm, setLoginForm] = useState({username: "", password: "", basicauthtoken: ""});
 
     // Handle form field changes
     const handleChange = (e) => {
@@ -18,13 +18,14 @@ function APIs() {
     const handleLogin = (e) => {
         e.preventDefault();
         // Convert username and password to basicauthtoken
-        const basicauthtoken = btoa(`${loginForm.username}:${loginForm.password}`);
+        const basicauthtoken = "Basic " + btoa(`${loginForm.username}:${loginForm.password}`);
+        // basicauthtoken = "Basic " + basicauthtoken;
         console.log(basicauthtoken);
 
         // Send POST request to /login endpoint
-        fetch('http://localhost:3001/login', {
+        fetch('http://localhost:3001/auth', {
             method: 'GET',
-            headers: {"Authorization": "Basic " + basicauthtoken},
+            headers: {"Authorization": basicauthtoken},
         })
             .then(response => response.json())
             .then(data => {
@@ -34,6 +35,7 @@ function APIs() {
                     localStorage.setItem('loggedin', true);
                     localStorage.setItem('userId', data.userId);
                     localStorage.setItem('username', data.username);
+                    localStorage.setItem('basicauthtoken', basicauthtoken);
 
                     window.location.href = '/';
                 } else {
@@ -48,6 +50,7 @@ function APIs() {
             <div>
                 <div className="modal-header">
                     <h5 className="modal-title">Log in</h5>
+                    <h5 className="modal-title">(Username: test / test2 / test3, password the same)</h5>
                 </div>
                 <div className="modal-body">
                     <Form onSubmit={handleLogin}>
@@ -55,7 +58,7 @@ function APIs() {
                             <Form.Label>Username</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="Enter username"
+                                placeholder="Enter username: test"
                                 name="username"
                                 value={loginForm.username}
                                 onChange={handleChange}
@@ -65,24 +68,24 @@ function APIs() {
                             <Form.Label>Password</Form.Label>
                             <Form.Control
                                 type="password"
-                                placeholder="Password"
+                                placeholder="Password: test"
                                 name="password"
                                 value={loginForm.password}
                                 onChange={handleChange}
                             />
                         </Form.Group>
                             <Button variant="success" type="submit">Log In</Button>
-                            <GoogleOAuthProvider clientId="858594356770-2ibbo40qjm34kfkd46tnj62i2ed2f68f.apps.googleusercontent.com">
-                                <GoogleLogin
-                                    onSuccess={credentialResponse => {
-                                        console.log(credentialResponse);
-                                    }}
-                                    onError={() => {
-                                        console.log('Login Failed');
-                                    }}
-                                    ux_mode={"popup"}
-                                />
-                            </GoogleOAuthProvider>
+                            {/*<GoogleOAuthProvider clientId="858594356770-2ibbo40qjm34kfkd46tnj62i2ed2f68f.apps.googleusercontent.com">*/}
+                            {/*    <GoogleLogin*/}
+                            {/*        onSuccess={credentialResponse => {*/}
+                            {/*            console.log(credentialResponse);*/}
+                            {/*        }}*/}
+                            {/*        onError={() => {*/}
+                            {/*            console.log('Login Failed');*/}
+                            {/*        }}*/}
+                            {/*        ux_mode={"popup"}*/}
+                            {/*    />*/}
+                            {/*</GoogleOAuthProvider>*/}
                     </Form>
                 </div>
             </div>

@@ -22,7 +22,7 @@ function MyMemesMasonry() {
         // fetch(`http://localhost:3001/my_memes?id=${id}`, { // Add id to the request
         fetch(`http://localhost:3001/drafts`, { // Add id to the request
             headers: {
-                "Authorization": "Basic dGVzdDp0ZXN0"
+                "Authorization": localStorage.getItem('basicauthtoken')
             }
         })
             .then(response => response.json())
