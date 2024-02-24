@@ -26,6 +26,7 @@ const myMemesRouter = require('./routes/my_memes');
 const draftsRouter = require('./routes/drafts');
 const apisRouter = require('./routes/apis');
 const loginRouter = require('./routes/login');
+const memeRouter = require('./routes/meme');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -79,6 +80,7 @@ app.use('/my_memes', myMemesRouter);
 app.use('/drafts', draftsRouter);
 app.use('/apis', apisRouter);
 app.use('/login', loginRouter);
+app.use('/meme', memeRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

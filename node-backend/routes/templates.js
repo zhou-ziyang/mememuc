@@ -17,10 +17,10 @@ const router = express.Router();
 
 router.get('/', function (req, res, next) {
     const db = req.db;
-    const memes = db.get('templates');
+    const templates = db.get('templates');
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    memes.find({}, {projection: {private: 0, draft: 0}}) // return all user properties, except the basic auth token
+    templates.find() // return all user properties, except the basic auth token
         .then((docs) => {
             const modifiedDocs = docs.map(doc => ({
                 ...doc,

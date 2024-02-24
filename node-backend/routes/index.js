@@ -40,6 +40,7 @@ router.post('/publish', publish.single('file'), async (req, res) => {
         // _id: req.body._id,
         file: req.file.path,
         title: req.body.title,
+        template: req.body.template,
         description: req.body.description,
         author: req.id,
         private: req.body.private === 'true',
@@ -137,5 +138,7 @@ router.post('/generate-memes', async (req, res) => {
 
     res.json({memeUrls});
 });
+
+router.get('/meme')
 
 module.exports = router;

@@ -11,6 +11,8 @@ import useImage from 'use-image';
 import {ResizableBox} from 'react-resizable';
 import Webcam from "react-webcam";
 import {useHotkeys} from 'react-hotkeys-hook';
+import Compressor from 'compressorjs';
+import imageCompression from 'browser-image-compression';
 
 
 const DEFAULT_WIDTH = 512;
@@ -164,13 +166,23 @@ function ImageEditor() {
     function MemeCard(props) {
         return (
             <div className="card">
-                <img className="card-img-top" src={props.file} alt={props.file}
-                     onClick={() => {
-                         setToRenderImage(true);
-                         setImageSrc(props.file);
-                         setShow(false);
-                     }
-                     }/>
+                <img className="card-img-top" src={props.file} alt={props.file}/>
+                {/*<ButtonGroup aria-label="Meme Controls">*/}
+                    <Button variant="secondary"
+                            onClick={() => {
+                                setToRenderTemplate(true);
+                                setImageSrc(props.file);
+                                setShow(false);
+                            }
+                            }>Set as Template</Button>
+                    <Button variant="secondary"
+                            onClick={() => {
+                                setToRenderImage(true);
+                                setImageSrc(props.file);
+                                setShow(false);
+                            }
+                            }>Insert</Button>
+                {/*</ButtonGroup>*/}
             </div>
         )
     }
@@ -225,18 +237,25 @@ function ImageEditor() {
         }
     }
 
-    const addImage = (image, x, y) => {
+    const addImage = (image, x, y, isTemplate=false) => {
         const aspectRatio = image.naturalWidth / image.naturalHeight;
         const canvasAspectRatio = stageSize.width / stageSize.height;
         const newWidth = aspectRatio > canvasAspectRatio ? stageSize.width : stageSize.height * aspectRatio;
         const newHeight = aspectRatio < canvasAspectRatio ? stageSize.height : stageSize.width / aspectRatio;
+
+        if (isTemplate) {
+            // When adding a template, clear out the existing template(s)
+            setImages(prevImages => prevImages.filter(image => !image.isTemplate));
+        }
+
         setImages(prevImages => [...prevImages, {
             id: UniqueId(),
             image: image,
             width: newWidth,
             height: newHeight,
             x: x,
-            y: y
+            y: y,
+            isTemplate: isTemplate
         }]);
         // console.log(images);
     }
@@ -245,15 +264,26 @@ function ImageEditor() {
     const [imageSrc, setImageSrc] = useState(null);
     const [image, status] = useImage(imageSrc, 'anonymous');
     const [toRenderImage, setToRenderImage] = useState(false);
+    const [toRenderTemplate, setToRenderTemplate] = useState(false);
     const [images, setImages] = useState([]);
+    const [size, setSize] = useState(0);
 
     useEffect(() => {
-        if (status === 'loaded') {
+        if (status === 'loaded' && toRenderImage) {
             // console.log(status)
             addImage(image, 0, 0);
             setToRenderImage(false);
         }
     }, [image, toRenderImage]);
+
+    useEffect(() => {
+        if (status === 'loaded' && toRenderTemplate) {
+            // console.log(status)
+            addImage(image, 0, 0, true);
+            // console.log(image);
+            setToRenderTemplate(false);
+        }
+    }, [image, toRenderTemplate]);
 
     const [texts, setTexts] = useState([]);
     useEffect(() => {
@@ -332,7 +362,7 @@ function ImageEditor() {
                 <FormControl
                     type="file"
                     onChange={handleFileChange}
-                    accept=".jpg,.png,.jpeg"
+                    accept=".jpg,.png,.jpeg,.gif"
                 />
                 <Button type="submit" variant="primary">
                     Upload
@@ -429,17 +459,54 @@ function ImageEditor() {
     const [stageSize, setStageSize] = useState({width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT});
 
     const stageRef = React.useRef(null);
+    // const [compressedFile, setCompressedFile] = useState(null);
+    // const [finalFile, seFinalFile] = useState(null);
 
     // Extra function for handling download
-    const handleExport = React.useCallback(() => {
+    const handleExport = React.useCallback(async () => {
+        function reduceFileSize(file) {
+            return new Promise((resolve, reject) => {
+                new Compressor(file, {
+                    quality: 0.4,
+                    success: (compressedResult) => {
+                        resolve(compressedResult);
+                    },
+                    error(err) {
+                        reject(err);
+                    },
+                });
+            });
+        }
+
         if (stageRef.current) {
-            const url = stageRef.current.toDataURL();
-            var link = document.createElement('a');
-            link.download = 'MemeImage.png';
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            let url = stageRef.current.toDataURL();
+
+            const response = await fetch(url);
+            let file = await response.blob();
+            // setCompressedFile(file);
+            const targetSize = parseInt(document.getElementById("size-input").value);
+
+            const options = {
+                maxSizeMB: targetSize / 1024,
+                // useWebWorker: true,
+                maxIteration: 30,
+            }
+
+            console.log(file.size / 1024, targetSize);
+
+            if (file.size / 1024 > targetSize) {
+                file = await imageCompression(file, options);
+            }
+
+
+            const anchor = document.createElement('a');
+            const urlBlob = URL.createObjectURL(file);
+            anchor.href = urlBlob;
+            anchor.download = "meme.png";
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+
         }
     }, [stageRef]);
 
@@ -469,13 +536,14 @@ function ImageEditor() {
                     formData.append('file', blob, 'TEST-AUTHOR' + '-' + date.toISOString().replace(/:/g, '-') + '.png');
                     // Add additional properties to formData
                     formData.append('title', 'your_title_here');
+                    formData.append('template', images.find(image => image.isTemplate).image.src);
                     formData.append('description', 'your_description_here');
                     // formData.append('author', 'TEST-AUTHOR');
                     formData.append('private', false);
                     formData.append('draft', draft);
                     formData.append('date', date);
-                    formData.append('vote', JSON.stringify([]));
-                    formData.append('comment', JSON.stringify([]));
+                    // formData.append('vote', JSON.stringify([]));
+                    // formData.append('comment', JSON.stringify([]));
 
                     try {
                         const response = await fetch('http://localhost:3001/publish', {
@@ -498,19 +566,27 @@ function ImageEditor() {
         }
     };
 
+    const removeAllNonTemplateImagesAndTexts = () => {
+        setImages(prevImages => prevImages.filter(image => image.isTemplate));
+        setTexts([]);
+    }
+
     return (
         <>
             <Container>
                 <div className="meme-editor-container">
                     <Fragment>
-                        <Button variant="primary" onClick={() => setShow(true)}>Insert Image</Button>
+                        <Button variant="primary" onClick={() => setShow(true)}>Gallery</Button>
                         <Button onClick={() => handlePublish(true)}>Save Draft</Button>
                         <Button onClick={() => handlePublish(false)}>Publish</Button>
+                        <input id={"size-input"} type="number" value={size} onChange={e => setSize(e.target.value)}
+                               placeholder="Enter file size in KB"/>
                         <Button onClick={handleExport}>Download</Button>
                     </Fragment>
                 </div>
                 <Row>
                     <Col sm={3}>
+                        <Button onClick={removeAllNonTemplateImagesAndTexts}>Clear</Button>
                         <form onSubmit={event => {
                             event.preventDefault();
                             addTextOnTopOfImage(event.target.elements[0].value, 50, 50);
